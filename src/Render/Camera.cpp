@@ -121,7 +121,7 @@ void Camera3::render(PixelBuffer &pixelBuffer, std::vector<std::shared_ptr<Scene
     pixels.resize(width * height);
     pixels = pixelBuffer.getPixels(); // Get the colors
 
-    int numThreads = 1;std::thread::hardware_concurrency(); // Use this as a default
+    int numThreads = std::thread::hardware_concurrency(); // Use this as a default
     // int numThreads = 20;
     int rowsPerThread = yResolution / numThreads;
 
