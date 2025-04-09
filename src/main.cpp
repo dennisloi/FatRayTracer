@@ -13,17 +13,22 @@
 #include "Render/Camera.h"
 #include <iostream>
 
+#include <thread>
+
+#define window_width 600
+#define window_height 400
+#define font_path "/home/dennis/Projects/FatRayTracer/assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
+
+
 int main()
 {
-    const unsigned int width = 800;
-    const unsigned int height = 600;
+    // Setup the SFML window
+    auto window = sf::RenderWindow{{window_width, window_height}, "FatRayTracer"};
+    // window.setFramerateLimit(144);
 
-    auto window = sf::RenderWindow{{width, height}, "CMake SFML Project"};
-    window.setFramerateLimit(144);
-
-    // Pick a font
+    // Select a font for the debug text
     sf::Font font;
-    font.loadFromFile("/home/dennis/Projects/FatRayTracer/assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf");
+    font.loadFromFile(font_path);
 
     // FPS Counter text element
     sf::Text fpsCounter;
@@ -36,6 +41,9 @@ int main()
     int framecount = 0;           // Used to count the frames between two intervals
     float updateInterval = 0.01f; // Time between FPS updates
     float elapsedTime = 0.0f;     // Used to count the elapsed time from the last FPS print
+
+    int width = window_width;
+    int height = window_height;
 
     // Create a pixel buffer
     PixelBuffer pixelBuffer(width, height);
@@ -54,10 +62,12 @@ int main()
     std::vector<Color> pixels;
     pixels.resize(width * height);
 
-    // Create a vector to store pointers to SceneObject
+    // Create a vector to store pointers to SceneObject (this will become a class)
     std::vector<std::shared_ptr<SceneObject>> objects;
 
-    Sphere sphere0 = Sphere(Vector3(0.0f, 0.0f, 30.0f), 50.f);
+    // Create a scene (temp)
+
+    Sphere sphere0 = Sphere(Vector3(0.0f, 0.0f, 0.0f), 50.f);
     sphere0.color = Color(160, 160, 160, 0);
     sphere0.roughness = 10.8f;
 
@@ -136,7 +146,6 @@ int main()
     objects.push_back(std::make_shared<Triangle3>(light1));
     objects.push_back(std::make_shared<Triangle3>(light2));
     objects.push_back(std::make_shared<Triangle3>(light3));
-
     objects.push_back(std::make_shared<Sphere>(sphere0));
     objects.push_back(std::make_shared<Triangle3>(triangle0));
     objects.push_back(std::make_shared<Triangle3>(triangle1));
@@ -150,7 +159,7 @@ int main()
     objects.push_back(std::make_shared<Triangle3>(triangle9));
 
     // Create a camera
-    Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -350.0f);
+    Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -450.0f);
     Vector3 cameraDirection = Vector3(0.0f, 0.0f, 1.0f);
     Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 10.0f, 10.0f);
 
@@ -162,13 +171,14 @@ int main()
     CameraText.setPosition(sf::Vector2f(10, height - 24 * 4));
 
     int iterations = 0;
-    int iterationsLimit = 100;
+    int iterationsLimit = 1000000;
 
     bool averaging = true;
 
-    // Main loop
+    // Main rendering loop
     while (window.isOpen())
     {
+        // Check for key presses
         for (auto event = sf::Event{}; window.pollEvent(event);)
         {
             if (event.type == sf::Event::Closed)
@@ -234,7 +244,6 @@ int main()
             }
         }
 
-        // pixelBuffer.clearBuffer();
         if (iterations < iterationsLimit)
         {
             camera.render(pixelBuffer, objects);
@@ -245,24 +254,26 @@ int main()
             std::cout << "Done" << std::endl;
         }
 
-        // Convert the pixel buffer to SFML
+        // Convert the pixel buffer to SFML (very slow)
         pixels = pixelBuffer.getPixels(); // Get the colors
 
         for (unsigned int y = 0; y < height; ++y)
         {
             for (unsigned int x = 0; x < width; ++x)
             {
-                // Create a sf::Color object with the render output, and assign it to pixels_sfml
 
+                Color pixel = pixels[y * width + x];
+
+                if (pixel.r == 0 && pixel.g == 0 && pixel.b == 0) continue;
                 Color tmp;
 
                 if (averaging) {
                 sf::Color oldColor_sfml = pixels_sfml[y * width + x];
-                Color oldColor = Color(oldColor_sfml.r, oldColor_sfml.g, oldColor_sfml.b, oldColor_sfml.a);
-                tmp = averageColors(pixels[y * width + x], oldColor);
+                Color oldColor = Color(oldColor_sfml.r, oldColor_sfml.g, oldColor_sfml.b, oldColor_sfml.a);// * (1/(float)iterations);
+                tmp = averageColors(pixel, oldColor);
                 }
                 else{
-                tmp = pixels[y * width + x];
+                tmp = pixel;
                 }
 
                 pixels_sfml[y * width + x] = sf::Color(tmp.r, tmp.g, tmp.b);
@@ -272,20 +283,7 @@ int main()
         // Update the texture with the pixel buffer data
         texture.update(reinterpret_cast<const sf::Uint8 *>(pixels_sfml.data()));
 
-        // FPS Counter
-        framecount++;
-        elapsedTime += clock.restart().asSeconds();
-
-        if (elapsedTime >= updateInterval)
-        {
-            char buffer[10];
-            snprintf(buffer, sizeof(buffer), "%.2f", framecount / updateInterval); // Format FPS with 2 decimal places                framecount = 0;
-            fpsCounter.setString(buffer);
-            framecount = 0;
-            elapsedTime = 0.0f;
-        }
-
-        // Camera settings
+        // Camera debug settings
         char buffer[100];
         sprintf(buffer, "Camera position: x:%.2f, y:%.2f, z:%.2f\nCamera rotation: x:%.2f, y:%.2f, z:%.2f\nFocal length%.2f",
                 camera.origin.x,
@@ -302,11 +300,11 @@ int main()
         // Create a sprite to draw the texture
         sf::Sprite sprite(texture);
         window.draw(sprite); // Draw the sprite containing the texture
-        // window.draw(fpsCounter);
+        
         // window.draw(CameraText);
 
         window.display();
     }
 
-    return 0; // Return 0 to indicate successful execution
+    return 0;
 }

@@ -4,6 +4,9 @@
 #include <stdexcept>
 #include <random>
 
+#include <cstdlib>  // For rand(), srand()
+#include <chrono>   // For high-resolution clock
+
 // Constructor
 Triangle3::Triangle3(Vector3 v0_, Vector3 v1_, Vector3 v2_)
     : v0(v0_), v1(v1_), v2(v2_) {
@@ -58,6 +61,10 @@ bool Triangle3::Intersect(const Ray3& ray, Ray3& reflection) const
     Vector3 direction = ray.direction - n * (2 * dot(ray.direction, n));
 
     // Add roughness
+    // Get the current time in nanoseconds since epoch
+    auto now = std::chrono::high_resolution_clock::now();
+    auto duration = now.time_since_epoch();
+    srand((unsigned int) duration.count());
     Vector3 randomDirection = getRandomDirection() * roughness;
     direction = direction + randomDirection;
 

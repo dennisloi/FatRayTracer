@@ -9,21 +9,35 @@
 
 class Camera3
 {
-    public:
+public:
+    // Origin and direction
+    Vector3 origin, direction;
 
-        //Origin and direction
-        Vector3 origin, direction;
+    // Focal length
+    float focalLength;
 
-        //Focal length
-        float focalLength;
+    // Canvas size
+    float width, height;
 
-        // Canvas size
-        float width, height;
+    // Constructor
+    Camera3(Vector3 origin_, Vector3 direction_, float focalLength_, float width_, float height_);
 
-        // Constructor
-        Camera3(Vector3 origin_, Vector3 direction_, float focalLength_, float width_, float height_);
+    void render(PixelBuffer &pixelBuffer, std::vector<std::shared_ptr<SceneObject>> &objects);
 
-        void render(PixelBuffer &pixelBuffer, std::vector<std::shared_ptr<SceneObject>>& objects);
+private:
+    void renderPixel(
+        int x, int y,
+        float xStep, float yStep,
+        float xResolution, float yResolution,
+        PixelBuffer &pixelBuffer,
+        const std::vector<std::shared_ptr<SceneObject>> &objects);
+
+    void renderRows(
+        int startY, int endY,
+        float xStep, float yStep,
+        float xResolution, float yResolution,
+        PixelBuffer &pixelBuffer,
+        const std::vector<std::shared_ptr<SceneObject>> &objects);
 };
 
 #endif // CAMERA_H

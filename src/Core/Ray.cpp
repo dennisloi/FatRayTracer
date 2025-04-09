@@ -19,3 +19,12 @@ Ray3::Ray3(Vector3 origin_, Vector3 direction_)
 void Ray3::setDirection(const Vector3& direction_) {
     direction = normalize(direction_);
 }
+
+Color getSkybox(const Ray3& ray){
+    
+    // If the y direction is negative, return the sky
+    if(ray.direction.y < 0){
+        return Color(0, 5, 40, 0);
+    }
+    return Color(30, 10, 0, 0);
+}

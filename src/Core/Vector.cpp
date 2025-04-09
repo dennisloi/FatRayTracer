@@ -68,8 +68,15 @@ float length = v.getLength();
     return v / length;
 }
 
+// TODO move out from here
+
+// float randomValueNormalDistribution(unsigned int seed){
+//     srand(seed);
+//     float theta = 2 * 3.1415926 * rand()
+//     float rho = sqrt(-2 * log)
+// }
+
 Vector3 getRandomDirection(){
-    
     float randomx = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
     float randomy = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
     float randomz = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;

@@ -31,6 +31,24 @@ Color Color::operator*(const Color &other) const
     return Color(red, green, blue, alpha);
 }
 
+Color Color::operator*(const float& val) const
+{
+    unsigned char red   = (unsigned char)r * val;
+    unsigned char green = (unsigned char)g * val;
+    unsigned char blue  = (unsigned char)b * val;
+    unsigned char alpha = (unsigned char)a * val;
+
+    return Color(red, green, blue, alpha);
+}
+
+// bool Color::operator=(const Color& other) const {
+//     if  (r != other.r) return false;
+//     if  (g != other.g) return false;
+//     if  (b != other.b) return false;
+//     if  (a != other.a) return false;
+//     return true;
+// }
+
 Color averageColors(const Color& color0, const Color& color1){
     int red   = (int)color0.r + (int)color1.r;
     int green = (int)color0.g + (int)color1.g;

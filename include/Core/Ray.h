@@ -22,4 +22,6 @@ class Ray3
 
 };
 
+Color getSkybox(const Ray3& ray); // Prob to be moved from here
+
 #endif // RAY_H
