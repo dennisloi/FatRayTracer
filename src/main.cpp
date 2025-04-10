@@ -16,6 +16,9 @@
 #include <thread>
 #include <chrono>
 
+#include <fstream>
+#include <iostream>
+
 #define window_width 800
 #define window_height 600
 #define font_path "/home/dennis/Projects/FatRayTracer/assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
@@ -74,7 +77,7 @@ int main()
 
     Color lightColor = Color(255, 255, 255, 0);
 
-    float lightSize = 50.0f;
+    float lightSize = 90.0f;
     float lightHeight = -80.f;
 
     Vector3 lightV0 = Vector3(-lightSize, lightHeight, -lightSize);
@@ -147,11 +150,23 @@ int main()
     triangle7.color = Color(127, 50, 25, 0);
     triangle8.color = Color(127, 25, 25, 0);
     triangle9.color = Color(127, 25, 25, 0);
-
     triangle10.color = Color(127, 127, 127, 0);
     triangle11.color = Color(127, 127, 127, 0);
 
-    float wallRoughness = 1.0f;
+    // triangle0.color = Color(255, 255, 255, 0);
+    // triangle1.color = Color(255, 255, 255, 0);
+    // triangle2.color = Color(255, 255, 255, 0);
+    // triangle3.color = Color(255, 255, 255, 0);
+    // triangle4.color = Color(255, 255, 255, 0);
+    // triangle5.color = Color(255, 255, 255, 0);
+    // triangle6.color = Color(255, 255, 255, 0);
+    // triangle7.color = Color(255, 255, 255, 0);
+    // triangle8.color = Color(255, 255, 255, 0);
+    // triangle9.color = Color(255, 255, 255, 0);
+    // triangle10.color = Color(255, 255, 255, 0);
+    // triangle11.color = Color(255, 255, 255, 0);
+
+    float wallRoughness = 0.9f; //🤡
 
     triangle0.roughness = wallRoughness;
     triangle1.roughness = wallRoughness;
@@ -163,15 +178,37 @@ int main()
     triangle7.roughness = wallRoughness;
     triangle8.roughness = wallRoughness;
     triangle9.roughness = wallRoughness;
-
     triangle10.roughness = wallRoughness;
     triangle11.roughness = wallRoughness;
 
+    float wallEmissivity = 0.0f; //🤡
+
+    triangle0.emissivity = wallEmissivity;
+    triangle1.emissivity = wallEmissivity;
+    triangle2.emissivity = wallEmissivity;
+    triangle3.emissivity = wallEmissivity;
+    triangle4.emissivity = wallEmissivity;
+    triangle5.emissivity = wallEmissivity;
+    triangle6.emissivity = wallEmissivity;
+    triangle7.emissivity = wallEmissivity;
+    triangle8.emissivity = wallEmissivity;
+    triangle9.emissivity = wallEmissivity;
+    triangle10.emissivity = wallEmissivity;
+    triangle11.emissivity = wallEmissivity;
+
+    Sphere eye_sx = Sphere(Vector3(-25.0f, 20.0f, 00.0f), 15.f);
+    eye_sx.emissivity = 1.0f;
+    eye_sx.color = Color(255, 0, 0, 0);
+    Sphere eye_dx = Sphere(Vector3(25.0f, 20.0f, 00.0f), 15.f);
+    eye_dx.emissivity = 1.0f;
+    eye_dx.color = Color(0, 0, 255, 0);
+
+    // objects.push_back(std::make_shared<Sphere>(eye_sx));
+    // objects.push_back(std::make_shared<Sphere>(eye_dx));
     objects.push_back(std::make_shared<Triangle3>(light0));
     objects.push_back(std::make_shared<Triangle3>(light1));
     objects.push_back(std::make_shared<Triangle3>(light2));
     objects.push_back(std::make_shared<Triangle3>(light3));
-    objects.push_back(std::make_shared<Sphere>(sphere0));
     objects.push_back(std::make_shared<Triangle3>(triangle0));
     objects.push_back(std::make_shared<Triangle3>(triangle1));
     objects.push_back(std::make_shared<Triangle3>(triangle2));
@@ -186,6 +223,78 @@ int main()
     objects.push_back(std::make_shared<Triangle3>(triangle10));
     objects.push_back(std::make_shared<Triangle3>(triangle11));
 
+    // Load STL
+    // TODO move into the scene class
+    std::ifstream file("../../Suzanne2.stl", std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file!" << std::endl;
+        return 1;
+    }
+
+    char header[80];
+
+    file.read(header, 80);
+    // Print the header
+    std::cout << "STL Header: " << std::string(header, 80) << std::endl;
+    
+    unsigned int numTriangles;
+    file.read(reinterpret_cast<char*>(&numTriangles), sizeof(unsigned int));
+    std::cout << "Number of triangles: " << numTriangles << std::endl;
+    
+    for (int i = 0; i<numTriangles - 1; i++){
+        float normal_x;
+        float normal_y;
+        float normal_z;
+        float v1_x;
+        float v1_y;
+        float v1_z;
+        float v2_x;
+        float v2_y;
+        float v2_z;
+        float v3_x;
+        float v3_y;
+        float v3_z;
+        char byteCount[2];
+
+        file.read(reinterpret_cast<char*>(&normal_x), sizeof(float));
+        file.read(reinterpret_cast<char*>(&normal_y), sizeof(float));
+        file.read(reinterpret_cast<char*>(&normal_z), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v1_x), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v1_y), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v1_z), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v2_x), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v2_y), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v2_z), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v3_x), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v3_y), sizeof(float));
+        file.read(reinterpret_cast<char*>(&v3_z), sizeof(float));
+        file.read(byteCount, 2);
+
+    // Debug print
+    // std::cout << "Normal: (" << normal_x << ", " << normal_y << ", " << normal_z << ")" << std::endl;
+    // std::cout << "Vertex 1: (" << v1_x << ", " << v1_y << ", " << v1_z << ")" << std::endl;
+    // std::cout << "Vertex 2: (" << v2_x << ", " << v2_y << ", " << v2_z << ")" << std::endl;
+    // std::cout << "Vertex 3: (" << v3_x << ", " << v3_y << ", " << v3_z << ")" << std::endl;
+    // std::cout << "Byte count: " << (unsigned int)byteCount[0] << std::endl;
+
+    float scale = 70.0f; // Scale factor for the STL model
+    float offsetX = 0.0f; // X-axis offset
+    float offsetY = 70.0f; // Y-axis offset
+    float offsetZ = 70.0f; // Z-axis offset
+
+    Triangle3 triangle = Triangle3(
+        Vector3(v1_y * scale + offsetX, v1_x * scale + offsetY, v1_z * scale + offsetZ),
+        Vector3(v2_y * scale + offsetX, v2_x * scale + offsetY, v2_z * scale + offsetZ),
+        Vector3(v3_y * scale + offsetX, v3_x * scale + offsetY, v3_z * scale + offsetZ));
+    // std::cout << "Normal:" << triangle.n.x << ", " << triangle.n.y << ", " << triangle.n.z << std::endl;
+    triangle.n = normalize(Vector3(normal_y, normal_x, normal_z) * -1.0f);
+    // std::cout << "Normal:" << triangle.n.x << ", " << triangle.n.y << ", " << triangle.n.z << std::endl;
+    triangle.color = Color(80, 80, 80, 0);
+    triangle.roughness = wallRoughness;
+    objects.push_back(std::make_shared<Triangle3>(triangle));
+    }
+
+
     // Create a camera
     Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -450.0f);
     Vector3 cameraDirection = Vector3(0.0f, 0.0f, 1.0f);
@@ -199,7 +308,7 @@ int main()
     CameraText.setPosition(sf::Vector2f(10, height - 24 * 4));
 
     int iterations = 0;
-    int iterationsLimit = 20;
+    int iterationsLimit = 10;
 
     bool averaging = true;
 

@@ -78,7 +78,7 @@ bool Triangle3::Intersect(const Ray3& ray, Ray3& reflection) const
     Vector3 randomSample = getRandomDirectionInHemisphere(n*-1);
 
     // Bias the random ray to the normal
-    // randomSample = normalize(randomSample + n*0.4f);
+    // randomSample = normalize(randomSample + n*0.5f); //Removed because I get darker and noisier results  
 
     // Blend the perfect reflection direction with the random sample
     float roughnessFactor = roughness * roughness;  // Square to make it sharper
