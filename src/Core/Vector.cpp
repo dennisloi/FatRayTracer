@@ -44,6 +44,8 @@ float Vector3::getLength() const
     return std::sqrt(x * x + y * y + z * z);
 }
 
+
+
 // Dot product
 float dot(const Vector3& v1, const Vector3& v2)
 {
@@ -76,14 +78,42 @@ float length = v.getLength();
 //     float rho = sqrt(-2 * log)
 // }
 
-Vector3 getRandomDirection(){
-    float randomx = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
-    float randomy = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
-    float randomz = ((float)rand() / (float)RAND_MAX) * 2.0f - 1.0f;
+Vector3 getRandomDirection() {
+    // Generate a random theta (azimuthal angle) between [0, 2π]
+    float theta = 2.0f * M_PI * ((float)rand() / RAND_MAX);
 
-    return normalize(Vector3(randomx, randomy, randomz));
+    // Generate a random value for cosine of phi, between [-1, 1]
+    float cosPhi = 2.0f * ((float)rand() / RAND_MAX) - 1.0f;
+
+    // Calculate phi (polar angle), using acos to get angle in [0, π]
+    float phi = acos(cosPhi);
+
+    // Convert from spherical to Cartesian coordinates
+    float x = sin(phi) * cos(theta);
+    float y = sin(phi) * sin(theta);
+    float z = cos(phi);
+
+    // Return the normalized direction vector
+    return Vector3(x, y, z);
 
     // Alternative (and better) methods from Sebastian Lague
     // https://stackoverflow.com/questions/5825680
     // https://math.stackexchange.com/a/1585996
+}
+
+// Return a random vector inside the hemisphere with respect to the normal vector
+Vector3 getRandomDirectionInHemisphere(const Vector3& normal) {
+
+        Vector3 randomDir = getRandomDirection();
+
+        // Make sure it's in the hemisphere defined by the normal
+        if (dot(randomDir, normal) < 0.0f) {
+            randomDir = randomDir * -1.0f; // Flip the direction to be in the same hemisphere as the normal
+        }
+
+        return randomDir;
+    }
+
+Vector3 lerp(const Vector3& start, const Vector3& end, float t) {
+    return start + (end - start) * t;
 }

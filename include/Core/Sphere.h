@@ -14,8 +14,6 @@ public:
 
     float radius;
 
-    float emissivity;
-
     // Declaration of the constructor
     Sphere(Vector3 Origin_, float radius_);
 

@@ -22,13 +22,15 @@ public:
     // Constructor
     Camera3(Vector3 origin_, Vector3 direction_, float focalLength_, float width_, float height_);
 
-    void render(PixelBuffer &pixelBuffer, std::vector<std::shared_ptr<SceneObject>> &objects);
+    void render(PixelBuffer &pixelBuffer,
+    std::vector<std::shared_ptr<SceneObject>> &objects,
+    int numThreads);
 
 private:
-    void renderPixel(
-        int x, int y,
-        float xStep, float yStep,
-        float xResolution, float yResolution,
+    Color renderPixel(
+        const int x,const int y,
+        const float xStep, float yStep,
+        const float xResolution, float yResolution,
         PixelBuffer &pixelBuffer,
         const std::vector<std::shared_ptr<SceneObject>> &objects);
 

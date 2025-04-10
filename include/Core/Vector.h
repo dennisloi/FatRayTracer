@@ -34,6 +34,8 @@ public:
 
     // Method to calculate the lenght
     float getLength() const;
+
+    
 };
 
 // Funciton for the dot product
@@ -45,5 +47,9 @@ Vector3 cross(const Vector3& v1, const Vector3& v2);
 Vector3 normalize(const Vector3& v1);
 
 Vector3 getRandomDirection();
+
+Vector3 getRandomDirectionInHemisphere(const Vector3& normal);
+
+Vector3 lerp(const Vector3& start, const Vector3& end, float t);
 
 #endif // VECTOR_H

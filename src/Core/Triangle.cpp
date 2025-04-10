@@ -57,22 +57,32 @@ bool Triangle3::Intersect(const Ray3& ray, Ray3& reflection) const
 
     // If all the checks fails, the ray intersects the triangle
 
+    // Check for transparency
+    static thread_local std::mt19937 gen(std::random_device{}());
+    static thread_local std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+    if (dist(gen) < transparency)
+        {
+            reflection.origin = intersection + ray.direction * 10e-6; //TODO: I had to increase this from 1e-6, why?
+            reflection.direction = ray.direction;
+            reflection.color = ray.color * color;
+            return true;
+        }
+
     // Specular reflection ray (shiny object)
     Vector3 direction = ray.direction - n * (2 * dot(ray.direction, n));
 
     // Add roughness
-    // Get the current time in nanoseconds since epoch
-    auto now = std::chrono::high_resolution_clock::now();
-    auto duration = now.time_since_epoch();
-    srand((unsigned int) duration.count());
-    Vector3 randomDirection = getRandomDirection() * roughness;
-    direction = direction + randomDirection;
 
-    // // If the dot product between the random vector and the normal is negative, flip it so it points outwards
-    if (dot(n, direction) > 0) // ???? This works only if I change the sign
-    {
-        direction = direction * -1;
-    }
+    // Sample a random direction in the hemisphere
+    Vector3 randomSample = getRandomDirectionInHemisphere(n*-1);
+
+    // Bias the random ray to the normal
+    // randomSample = normalize(randomSample + n*0.4f);
+
+    // Blend the perfect reflection direction with the random sample
+    float roughnessFactor = roughness * roughness;  // Square to make it sharper
+    direction = normalize(lerp(direction, randomSample, roughnessFactor));
 
     direction = normalize(direction);
 

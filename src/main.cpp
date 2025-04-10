@@ -14,11 +14,11 @@
 #include <iostream>
 
 #include <thread>
+#include <chrono>
 
-#define window_width 600
-#define window_height 400
+#define window_width 800
+#define window_height 600
 #define font_path "/home/dennis/Projects/FatRayTracer/assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
-
 
 int main()
 {
@@ -67,9 +67,10 @@ int main()
 
     // Create a scene (temp)
 
-    Sphere sphere0 = Sphere(Vector3(0.0f, 0.0f, 0.0f), 50.f);
+    Sphere sphere0 = Sphere(Vector3(50.0f, 0.0f, 0.0f), 50.f);
+    // sphere0.transparency = 0.8;
     sphere0.color = Color(160, 160, 160, 0);
-    sphere0.roughness = 10.8f;
+    sphere0.roughness = 1.0f;
 
     Color lightColor = Color(255, 255, 255, 0);
 
@@ -107,16 +108,34 @@ int main()
     Vector3 v7 = Vector3(-100.0f, 100.0f, -100.0f);
     Vector3 v8 = Vector3(100.0f, 100.0f, -100.0f);
 
+    // Bottom
     Triangle3 triangle0 = Triangle3(v6, v8, v7);
     Triangle3 triangle1 = Triangle3(v6, v7, v5);
+
+    // Left
     Triangle3 triangle2 = Triangle3(v5, v7, v3);
     Triangle3 triangle3 = Triangle3(v3, v7, v1);
+
+    // Top
     Triangle3 triangle4 = Triangle3(v3, v1, v2);
     Triangle3 triangle5 = Triangle3(v3, v2, v4);
+
+    // Right
     Triangle3 triangle6 = Triangle3(v4, v2, v8);
     Triangle3 triangle7 = Triangle3(v6, v4, v8);
+
+    // Back
     Triangle3 triangle8 = Triangle3(v6, v3, v4);
     Triangle3 triangle9 = Triangle3(v6, v5, v3);
+
+    // Front
+    Triangle3 triangle10 = Triangle3(v1, v7, v8);
+    Triangle3 triangle11 = Triangle3(v1, v8, v2);
+
+    // triangle10.transparency = 1.0f;
+    // triangle11.transparency = 0.2f;
+    // triangle10.emissivity = 0.1f;
+    // triangle11.emissivity = 0.1f;
 
     triangle0.color = Color(50, 50, 127, 0);
     triangle1.color = Color(50, 50, 127, 0);
@@ -129,7 +148,10 @@ int main()
     triangle8.color = Color(127, 25, 25, 0);
     triangle9.color = Color(127, 25, 25, 0);
 
-    float wallRoughness = 2.0f;
+    triangle10.color = Color(127, 127, 127, 0);
+    triangle11.color = Color(127, 127, 127, 0);
+
+    float wallRoughness = 1.0f;
 
     triangle0.roughness = wallRoughness;
     triangle1.roughness = wallRoughness;
@@ -141,6 +163,9 @@ int main()
     triangle7.roughness = wallRoughness;
     triangle8.roughness = wallRoughness;
     triangle9.roughness = wallRoughness;
+
+    triangle10.roughness = wallRoughness;
+    triangle11.roughness = wallRoughness;
 
     objects.push_back(std::make_shared<Triangle3>(light0));
     objects.push_back(std::make_shared<Triangle3>(light1));
@@ -158,6 +183,9 @@ int main()
     objects.push_back(std::make_shared<Triangle3>(triangle8));
     objects.push_back(std::make_shared<Triangle3>(triangle9));
 
+    objects.push_back(std::make_shared<Triangle3>(triangle10));
+    objects.push_back(std::make_shared<Triangle3>(triangle11));
+
     // Create a camera
     Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -450.0f);
     Vector3 cameraDirection = Vector3(0.0f, 0.0f, 1.0f);
@@ -171,14 +199,21 @@ int main()
     CameraText.setPosition(sf::Vector2f(10, height - 24 * 4));
 
     int iterations = 0;
-    int iterationsLimit = 1000000;
+    int iterationsLimit = 20;
 
     bool averaging = true;
+
+    int numThreads = std::thread::hardware_concurrency();
+
+    // Print stuff before starting the render
+    std::cout << "Number of concurrent threads supported: " << std::thread::hardware_concurrency() << "(" << numThreads << " used)" << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
 
     // Main rendering loop
     while (window.isOpen())
     {
         // Check for key presses
+
         for (auto event = sf::Event{}; window.pollEvent(event);)
         {
             if (event.type == sf::Event::Closed)
@@ -187,56 +222,6 @@ int main()
             }
             else if (event.type == sf::Event::KeyPressed) // Check if a key is pressed
             {
-
-                // Check if 'Control' is held down and 'C' is pressed
-                if (event.key.code == sf::Keyboard::C && event.key.control)
-                {
-                    // Action for when 'Ctrl+C' is pressed
-                    window.close();
-                }
-
-                pixelBuffer.clearBuffer();
-                iterations = 0;
-
-                if (event.key.code == sf::Keyboard::A)
-                {
-                    camera.origin.x -= 5.0f;
-                }
-                if (event.key.code == sf::Keyboard::D)
-                {
-                    camera.origin.x += 5.0f;
-                }
-                if (event.key.code == sf::Keyboard::E)
-                {
-                    camera.origin.y += 5.0f;
-                }
-                if (event.key.code == sf::Keyboard::Q)
-                {
-                    camera.origin.y -= 5.0f;
-                }
-                if (event.key.code == sf::Keyboard::W)
-                {
-                    camera.origin.z += 1.0f;
-                }
-                if (event.key.code == sf::Keyboard::S)
-                {
-                    camera.origin.z -= 1.0f;
-                }
-
-                if (event.key.code == sf::Keyboard::F)
-                {
-                    camera.focalLength -= 0.1f;
-                    if (camera.focalLength < 0.1f)
-                    {
-                        camera.focalLength = 0.1f;
-                    }
-                }
-                if (event.key.code == sf::Keyboard::G)
-                {
-                    camera.focalLength += 0.1f;
-                }
-
-                // You can add other keys in a similar way
                 if (event.key.code == sf::Keyboard::Escape) // Example: check for 'Escape' key
                 {
                     window.close(); // Close the window when 'Escape' is pressed
@@ -245,65 +230,82 @@ int main()
         }
 
         if (iterations < iterationsLimit)
+
         {
-            camera.render(pixelBuffer, objects);
+            std::cout << "Rendering: " << iterations + 1 << "/" << iterationsLimit << std::endl;
+            camera.render(pixelBuffer, objects, numThreads);
+
+            // Convert the pixel buffer to SFML
+            pixels = pixelBuffer.getPixels(); // Get the colors
+
+            for (unsigned int y = 0; y < height; y++)
+            {
+                for (unsigned int x = 0; x < width; x++)
+                {
+
+                    Color pixel = pixels[y * width + x];
+
+                    if (pixel.r == 0 && pixel.g == 0 && pixel.b == 0)
+                        continue;
+                    Color tmp;
+
+                    if (averaging)
+                    {
+                        sf::Color oldColor_sfml = pixels_sfml[y * width + x];
+                        Color oldColor = Color(oldColor_sfml.r, oldColor_sfml.g, oldColor_sfml.b, oldColor_sfml.a);
+
+                        // This will average the values between all renders
+                        // float weight = 1.0f / (iterations + 1);
+                        // tmp = oldColor * ( 1 - weight) + pixel * weight;
+                        if (iterations == 0)
+                            tmp = pixel;
+                        else
+                            tmp = averageColors(pixel, oldColor);
+                    }
+                    else
+                    {
+                        tmp = pixel;
+                    }
+
+                    pixels_sfml[y * width + x] = sf::Color(tmp.r, tmp.g, tmp.b);
+                }
+            }
+
+            // Update the texture with the pixel buffer data
+            texture.update(reinterpret_cast<const sf::Uint8 *>(pixels_sfml.data()));
+
+            // Camera debug settings
+            char buffer[100];
+            sprintf(buffer, "Camera position: x:%.2f, y:%.2f, z:%.2f\nCamera rotation: x:%.2f, y:%.2f, z:%.2f\nFocal length%.2f",
+                    camera.origin.x,
+                    camera.origin.y,
+                    camera.origin.z,
+                    camera.direction.x,
+                    camera.direction.y,
+                    camera.direction.z,
+                    camera.focalLength);
+            CameraText.setString(buffer);
+
+            window.clear();
+
+            // Create a sprite to draw the texture
+            sf::Sprite sprite(texture);
+            window.draw(sprite); // Draw the sprite containing the texture
+
+            // window.draw(CameraText);
+
+            iterations++;
+
+            window.display();
+        }
+        else if (iterations == iterationsLimit)
+        {
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end - start;
+
+            std::cout << "Render time: " << elapsed.count() << " seconds\n";
             iterations++;
         }
-        if (iterations == iterationsLimit - 1)
-        {
-            std::cout << "Done" << std::endl;
-        }
-
-        // Convert the pixel buffer to SFML (very slow)
-        pixels = pixelBuffer.getPixels(); // Get the colors
-
-        for (unsigned int y = 0; y < height; ++y)
-        {
-            for (unsigned int x = 0; x < width; ++x)
-            {
-
-                Color pixel = pixels[y * width + x];
-
-                if (pixel.r == 0 && pixel.g == 0 && pixel.b == 0) continue;
-                Color tmp;
-
-                if (averaging) {
-                sf::Color oldColor_sfml = pixels_sfml[y * width + x];
-                Color oldColor = Color(oldColor_sfml.r, oldColor_sfml.g, oldColor_sfml.b, oldColor_sfml.a);// * (1/(float)iterations);
-                tmp = averageColors(pixel, oldColor);
-                }
-                else{
-                tmp = pixel;
-                }
-
-                pixels_sfml[y * width + x] = sf::Color(tmp.r, tmp.g, tmp.b);
-            }
-        }
-
-        // Update the texture with the pixel buffer data
-        texture.update(reinterpret_cast<const sf::Uint8 *>(pixels_sfml.data()));
-
-        // Camera debug settings
-        char buffer[100];
-        sprintf(buffer, "Camera position: x:%.2f, y:%.2f, z:%.2f\nCamera rotation: x:%.2f, y:%.2f, z:%.2f\nFocal length%.2f",
-                camera.origin.x,
-                camera.origin.y,
-                camera.origin.z,
-                camera.direction.x,
-                camera.direction.y,
-                camera.direction.z,
-                camera.focalLength);
-        CameraText.setString(buffer);
-
-        window.clear();
-
-        // Create a sprite to draw the texture
-        sf::Sprite sprite(texture);
-        window.draw(sprite); // Draw the sprite containing the texture
-        
-        // window.draw(CameraText);
-
-        window.display();
     }
 
     return 0;

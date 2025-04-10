@@ -5,11 +5,12 @@
 
 // Constructor
 Sphere::Sphere(Vector3 Origin_, float radius_)
-    : Origin(Origin_), radius(radius_) { emissivity = 0.0f; }
+    : Origin(Origin_), radius(radius_) {}
 
 // Check intersection
 bool Sphere::Intersect(const Ray3 &ray, Ray3 &reflection) const
 {
+
     // Calculate the vector from the ray origin to the sphere center
     Vector3 L = Origin - ray.origin; // Sphere's center - Ray's origin
 
@@ -57,16 +58,13 @@ bool Sphere::Intersect(const Ray3 &ray, Ray3 &reflection) const
     Vector3 direction = ray.direction - normal * (2 * dot(ray.direction, normal));
 
     // Add roughness
-    Vector3 randomDirection = getRandomDirection() * roughness;
-    direction = direction + randomDirection;
 
-    // // If the dot product between the random vector and the normal is negative, flip it so it points outwards
-    if (dot(normal, direction) < 0)
-    {
-        direction = direction * -1;
-    }
-
-    direction = normalize(direction);
+    // Sample a random direction in the hemisphere
+    Vector3 randomSample = getRandomDirectionInHemisphere(normal);
+    
+    // Blend the perfect reflection direction with the random sample
+    direction = normalize(lerp(direction, randomSample, roughness));
+    // direction = normalize(direction * (1.0f - roughness) + randomSample * roughness);
 
     reflection.origin = intersection + direction * 1e-6;
     reflection.direction = direction;

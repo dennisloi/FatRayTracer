@@ -15,6 +15,8 @@ class SceneObject {
     float emissivity = 0.0f;
 
     float roughness = 0.0f;
+
+    float transparency = 0.0f;
     
     // Checks if a ray intersects with the triangle (Abstract method)
     virtual bool Intersect(const Ray3& ray, Ray3& reflection) const = 0;
