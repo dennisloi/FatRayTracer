@@ -20,8 +20,8 @@
 #include <fstream>
 #include <iostream>
 
-#define window_width 800
-#define window_height 600
+#define window_width 640
+#define window_height 480
 #define font_path "/home/dennis/Projects/FatRayTracer/assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
 
 // Structure used to segment the rendering TODO move
@@ -132,8 +132,12 @@ void render(
                 for (int j = 0; j < passes; j++)
                 {
                     pixelColor = pixelColor + renderPixel(x, y, camera, width, height, maxReflections, objects);
-                    pixelBuffer.setPixel(x, y, pixelColor);
                 }
+
+                // Average
+                Color oldColor = pixelBuffer.getPixels()[y * width + x];
+                Color newColor = oldColor + pixelColor * (1 / (i + 1));
+                pixelBuffer.setPixel(x, y, newColor);
             }
         }
     }
@@ -141,7 +145,7 @@ void render(
     rectangle.rendering = false;
 }
 
-void updateRender(
+bool updateRender(
     PixelBuffer &pixelBuffer,
     Camera3 camera,
     int width, int height,
@@ -152,10 +156,11 @@ void updateRender(
     int &counter)
 {
     // SETTINGS
-    int passes = 2;
+    int passes = 3;
     int averages = 2;
     int maxReflections = 5;
 
+        // Start new render threads
     while (renderingThreads.size() < numThreads && counter > 0)
     {
         counter--;
@@ -164,6 +169,7 @@ void updateRender(
         renderingThreads.push_back(std::async(std::launch::async, render, std::ref(pixelBuffer), camera, width, height, std::ref(objects), std::ref(testQueue[counter]), passes, averages, maxReflections));
     }
 
+    // Terminate finished threads
     for (int i = renderingThreads.size() - 1; i >= 0; --i)
     {
         if (renderingThreads[i].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
@@ -172,6 +178,11 @@ void updateRender(
             renderingThreads.erase(renderingThreads.begin() + i); // Remove finished thread
         }
     }
+
+    if (renderingThreads.size() == 0)
+        return false;
+    else
+        return true;
 }
 
 std::vector<std::shared_ptr<SceneObject>> loadSTL(
@@ -482,7 +493,7 @@ int main()
     CameraText.setCharacterSize(24);
     CameraText.setFillColor(sf::Color::Red);
     CameraText.setPosition(sf::Vector2f(10, 10));
-    CameraText.setString("Rendering...");
+    CameraText.setString("Press 'A' to start the render");
 
     // Create a list of rendering threads
     std::vector<std::future<void>> renderingThreads;
@@ -491,9 +502,9 @@ int main()
     // Prepare the task queue
     std::vector<Rectangle> testQueue;
 
-    int xDivs = 10;
-    int xStep = width / xDivs;
-    int yDivs = 10;
+    int xDivs = 20;
+    int xStep = width / xDivs; //TODO, check for fractional divisions! May cause part of the image to not be rendered
+    int yDivs = 20;
     int yStep = height / yDivs;
 
     for (int y = yDivs - 1; y >= 0; y--)
@@ -509,8 +520,11 @@ int main()
 
     // Print stuff before starting the render
     std::cout << "Number of concurrent threads supported: " << std::thread::hardware_concurrency() << "(" << numThreads << " used)" << std::endl;
-    auto start = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point<std::chrono::high_resolution_clock> start;
+    std::chrono::time_point<std::chrono::high_resolution_clock> stop;
+    sf::Sprite sprite(texture);
 
+    bool rendering = false;
     bool renderFinished = false;
     int counter = testQueue.size();
 
@@ -526,8 +540,42 @@ int main()
             }
             else if (event.type == sf::Event::KeyPressed)
             {
+                //'A' key
+                if (event.key.code == sf::Keyboard::A)
+                {
+                    // Start rendering
+                    if (!rendering)
+                    {
+
+                        rendering = true;
+                        CameraText.setString("Rendering...");
+                        pixelBuffer.clearBuffer();
+
+                        counter = testQueue.size();
+
+                        for (int i = 0; i < testQueue.size(); i++)
+                        {
+                            testQueue[i].done = false;
+                            testQueue[i].rendering = false;
+                        }
+
+                        start = std::chrono::high_resolution_clock::now();
+                    }
+                }
+
+                //'C' key
+                if (event.key.code == sf::Keyboard::C)
+                {
+                    rendering = false;
+                    for (int i = 0; i < testQueue.size(); i++)
+                    {
+                        testQueue[i].done = false;
+                    }
+
+                    CameraText.setString("Stopping...");
+                }
                 //'Escape' key
-                if (event.key.code == sf::Keyboard::Escape)
+                if (event.key.code == sf::Keyboard::Escape || ((event.key.control && event.key.code == sf::Keyboard::C)))
                 {
                     window.close();
                 }
@@ -537,8 +585,16 @@ int main()
         // Rendering part
         window.clear();
 
-        // Update the rendering threads
-        updateRender(pixelBuffer, camera, width, height, objects, renderingThreads, testQueue, numThreads, counter);
+        if (rendering)
+        {
+            // Update the rendering threads
+            rendering = updateRender(pixelBuffer, camera, width, height, objects, renderingThreads, testQueue, numThreads, counter);
+            if (!rendering)
+            {
+                renderFinished = true;
+                stop = std::chrono::high_resolution_clock::now();
+            }
+        }
 
         // Convert the pixel buffer to SFML TODO move to a function/Class/method/somethingthatisnotfullyhere
         pixels = pixelBuffer.getPixels(); // Get the colors
@@ -547,8 +603,6 @@ int main()
             for (unsigned int x = 0; x < width; x++)
             {
                 Color pixel = pixels[y * width + x];
-                if (pixel.r == 0 && pixel.g == 0 && pixel.b == 0)
-                    continue;
                 pixels_sfml[y * width + x] = sf::Color(pixel.r, pixel.g, pixel.b);
             }
         }
@@ -556,12 +610,10 @@ int main()
         // Update the texture with the pixel buffer data
         texture.update(reinterpret_cast<const sf::Uint8 *>(pixels_sfml.data()));
 
-        sf::Sprite sprite(texture);
-        window.draw(sprite); // Draw the sprite containing the texture
+        // Draw the sprite containing the texture
+        window.draw(sprite);
 
         // Draw rendering rectangles
-        float finished = true;
-
         for (int i = 0; i < testQueue.size(); i++)
         {
             if (testQueue[i].rendering == true)
@@ -569,30 +621,28 @@ int main()
                 sf::RectangleShape rectangle(sf::Vector2f(testQueue[i].endX - testQueue[i].startX, testQueue[i].endY - testQueue[i].startY));
                 rectangle.setFillColor(sf::Color::Transparent);
                 rectangle.setOutlineThickness(1);
-                rectangle.setOutlineColor(sf::Color::Yellow);
                 rectangle.setPosition(testQueue[i].startX, testQueue[i].startY);
+
+                if (rendering)
+                    rectangle.setOutlineColor(sf::Color::Yellow);
+                else
+                    rectangle.setOutlineColor(sf::Color::Red);
+
                 window.draw(rectangle);
-                finished = false;
             }
         }
 
         // TODO clean up this fucking hack
-        if (counter == 0 && finished == true && !renderFinished)
+        // if (counter == 0 && finished == true && !renderFinished)
+        if (renderFinished)
         {
             // Render finished
-            renderFinished = true;
+            renderFinished = false;
             auto stop = std::chrono::high_resolution_clock::now();
             CameraText.setString("Render finished in " +
                                  std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()) +
                                  "ms!");
         }
-        // }
-        // sf::RectangleShape rectangle(sf::Vector2f(200, 50));
-        // rectangle.setFillColor(sf::Color::Transparent);
-        // rectangle.setOutlineThickness(2);
-        // rectangle.setOutlineColor(sf::Color::Yellow);
-        // rectangle.setPosition(10, 10);
-        // window.draw(rectangle);
 
         window.draw(CameraText);
         window.display();
