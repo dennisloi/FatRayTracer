@@ -24,22 +24,10 @@ public:
 
     void render(PixelBuffer &pixelBuffer,
     std::vector<std::shared_ptr<SceneObject>> &objects,
-    int numThreads);
+    int startX, int endX, int startY, int endY);
 
 private:
-    Color renderPixel(
-        const int x,const int y,
-        const float xStep, float yStep,
-        const float xResolution, float yResolution,
-        PixelBuffer &pixelBuffer,
-        const std::vector<std::shared_ptr<SceneObject>> &objects);
 
-    void renderRows(
-        int startY, int endY,
-        float xStep, float yStep,
-        float xResolution, float yResolution,
-        PixelBuffer &pixelBuffer,
-        const std::vector<std::shared_ptr<SceneObject>> &objects);
 };
 
 #endif // CAMERA_H

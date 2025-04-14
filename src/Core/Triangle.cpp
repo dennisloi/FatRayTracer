@@ -65,7 +65,7 @@ bool Triangle3::Intersect(const Ray3& ray, Ray3& reflection) const
         {
             reflection.origin = intersection + ray.direction * 10e-6; //TODO: I had to increase this from 1e-6, why?
             reflection.direction = ray.direction;
-            reflection.color = ray.color * color;
+            reflection.color = ray.color * color * (transparency + 1.0f);
             return true;
         }
 

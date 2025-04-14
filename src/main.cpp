@@ -15,6 +15,7 @@
 
 #include <thread>
 #include <chrono>
+#include <future>
 
 #include <fstream>
 #include <iostream>
@@ -22,6 +23,243 @@
 #define window_width 800
 #define window_height 600
 #define font_path "/home/dennis/Projects/FatRayTracer/assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
+
+// Structure used to segment the rendering TODO move
+struct Rectangle
+{
+    int startX;
+    int endX;
+    int startY;
+    int endY;
+    bool done = false;
+    bool rendering = false;
+
+    Rectangle(int sx, int ex, int sy, int ey)
+        : startX(sx), endX(ex), startY(sy), endY(ey) {}
+};
+
+// TODO move
+Color renderPixel(
+    int x, int y,
+    Camera3 camera,
+    int width, int height,
+    int maxReflections,
+    const std::vector<std::shared_ptr<SceneObject>> &objects)
+{
+
+    float xStep = camera.width / width;
+    float yStep = camera.height / height;
+
+    Vector3 RayDirection(
+        (float)x * xStep - xStep * width / 2,
+        (float)y * yStep - yStep * height / 2,
+        camera.focalLength);
+
+    RayDirection = normalize(RayDirection + getRandomDirection() * 0.01f); // TODO variable
+
+    Vector3 RayOrigin = camera.origin;
+    Ray3 ray = Ray3(RayOrigin, RayDirection);
+
+    Ray3 reflection;
+
+    float minDistance = std::numeric_limits<float>::max();
+    Ray3 closestObjectReflection;
+    int closestObjectIndex = -1;
+    bool hit = false;
+
+    for (int i = 0; i < maxReflections; i++)
+    {
+        hit = false;
+
+        for (size_t j = 0; j < objects.size(); j++)
+        {
+            if (objects[j]->Intersect(ray, reflection))
+            {
+                float distance = (reflection.origin - ray.origin).getLength();
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestObjectReflection = reflection;
+                    closestObjectIndex = j;
+                }
+                hit = true;
+            }
+        }
+
+        if (hit)
+        {
+            ray = closestObjectReflection;
+            if (objects[closestObjectIndex]->emissivity > 0.0f)
+            {
+                Color c = ray.color * objects[closestObjectIndex]->emissivity * 2;
+                return c;
+            }
+        }
+    }
+
+    if (!hit)
+    {
+        Color c = Color();
+        return ray.color * getSkybox(ray);
+        return c;
+    }
+
+    // In case no return hit above (shouldn't happen logically, but to be safe)
+    return Color();
+}
+
+// TODO move
+void render(
+    PixelBuffer &pixelBuffer,
+    Camera3 camera,
+    int width, int height,
+    std::vector<std::shared_ptr<SceneObject>> &objects,
+    Rectangle &rectangle,
+    int passes = 1,
+    int averages = 1,
+    int maxReflections = 5)
+{
+    rectangle.rendering = true;
+
+    for (int y = rectangle.startY; y < rectangle.endY; y++)
+    {
+        for (int x = rectangle.startX; x < rectangle.endX; x++)
+        {
+            for (int i = 0; i < averages; i++)
+            {
+                Color pixelColor;
+
+                for (int j = 0; j < passes; j++)
+                {
+                    pixelColor = pixelColor + renderPixel(x, y, camera, width, height, maxReflections, objects);
+                    pixelBuffer.setPixel(x, y, pixelColor);
+                }
+            }
+        }
+    }
+
+    rectangle.rendering = false;
+}
+
+void updateRender(
+    PixelBuffer &pixelBuffer,
+    Camera3 camera,
+    int width, int height,
+    std::vector<std::shared_ptr<SceneObject>> &objects,
+    std::vector<std::future<void>> &renderingThreads,
+    std::vector<Rectangle> &testQueue,
+    int numThreads,
+    int &counter)
+{
+    // SETTINGS
+    int passes = 2;
+    int averages = 2;
+    int maxReflections = 5;
+
+    while (renderingThreads.size() < numThreads && counter > 0)
+    {
+        counter--;
+
+        // Start a rendering thread that uses camera.render and the coords from the rectangle
+        renderingThreads.push_back(std::async(std::launch::async, render, std::ref(pixelBuffer), camera, width, height, std::ref(objects), std::ref(testQueue[counter]), passes, averages, maxReflections));
+    }
+
+    for (int i = renderingThreads.size() - 1; i >= 0; --i)
+    {
+        if (renderingThreads[i].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+        {
+            // Thread is finished
+            renderingThreads.erase(renderingThreads.begin() + i); // Remove finished thread
+        }
+    }
+}
+
+std::vector<std::shared_ptr<SceneObject>> loadSTL(
+    const std::string &fileName,
+    float roughness = 0.0f,
+    float emissivity = 0.0f,
+    float transparency = 0.0f,
+    Color color = Color())
+{
+    std::vector<std::shared_ptr<SceneObject>> objects;
+
+    std::ifstream file(fileName, std::ios::binary);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open file!" << std::endl;
+        return objects;
+    }
+
+    char header[80];
+
+    file.read(header, 80);
+    // Print the header
+    // std::cout << "STL Header: " << std::string(header, 80) << std::endl;
+
+    unsigned int numTriangles;
+    file.read(reinterpret_cast<char *>(&numTriangles), sizeof(unsigned int));
+    std::cout << "Number of triangles: " << numTriangles << std::endl;
+
+    for (int i = 0; i < numTriangles - 1; i++)
+    {
+        float normal_x;
+        float normal_y;
+        float normal_z;
+        float v1_x;
+        float v1_y;
+        float v1_z;
+        float v2_x;
+        float v2_y;
+        float v2_z;
+        float v3_x;
+        float v3_y;
+        float v3_z;
+        char byteCount[2];
+
+        file.read(reinterpret_cast<char *>(&normal_x), sizeof(float));
+        file.read(reinterpret_cast<char *>(&normal_y), sizeof(float));
+        file.read(reinterpret_cast<char *>(&normal_z), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v1_x), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v1_y), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v1_z), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v2_x), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v2_y), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v2_z), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v3_x), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v3_y), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v3_z), sizeof(float));
+        file.read(byteCount, 2);
+
+        // Debug print
+        // std::cout << "Normal: (" << normal_x << ", " << normal_y << ", " << normal_z << ")" << std::endl;
+        // std::cout << "Vertex 1: (" << v1_x << ", " << v1_y << ", " << v1_z << ")" << std::endl;
+        // std::cout << "Vertex 2: (" << v2_x << ", " << v2_y << ", " << v2_z << ")" << std::endl;
+        // std::cout << "Vertex 3: (" << v3_x << ", " << v3_y << ", " << v3_z << ")" << std::endl;
+        // std::cout << "Byte count: " << (unsigned int)byteCount[0] << std::endl;
+
+        float scale = 70.0f;   // Scale factor for the STL model
+        float offsetX = 0.0f;  // X-axis offset
+        float offsetY = 70.0f; // Y-axis offset
+        float offsetZ = 70.0f; // Z-axis offset
+
+        Triangle3 triangle = Triangle3(
+            Vector3(v1_y * scale + offsetX, v1_x * scale + offsetY, v1_z * scale + offsetZ),
+            Vector3(v2_y * scale + offsetX, v2_x * scale + offsetY, v2_z * scale + offsetZ),
+            Vector3(v3_y * scale + offsetX, v3_x * scale + offsetY, v3_z * scale + offsetZ));
+        // std::cout << "Normal:" << triangle.n.x << ", " << triangle.n.y << ", " << triangle.n.z << std::endl;
+        triangle.n = normalize(Vector3(normal_y, normal_x, normal_z) * -1.0f);
+        // std::cout << "Normal:" << triangle.n.x << ", " << triangle.n.y << ", " << triangle.n.z << std::endl;
+
+        // Triangle settings
+        triangle.color = color,
+        triangle.roughness = roughness;
+        triangle.emissivity = emissivity;
+        triangle.transparency = transparency;
+
+        objects.push_back(std::make_shared<Triangle3>(triangle));
+    }
+    return objects;
+}
 
 int main()
 {
@@ -38,12 +276,6 @@ int main()
     fpsCounter.setFont(font);
     fpsCounter.setCharacterSize(24);
     fpsCounter.setFillColor(sf::Color::Red);
-
-    // FPS Counter variables
-    sf::Clock clock;
-    int framecount = 0;           // Used to count the frames between two intervals
-    float updateInterval = 0.01f; // Time between FPS updates
-    float elapsedTime = 0.0f;     // Used to count the elapsed time from the last FPS print
 
     int width = window_width;
     int height = window_height;
@@ -166,7 +398,7 @@ int main()
     // triangle10.color = Color(255, 255, 255, 0);
     // triangle11.color = Color(255, 255, 255, 0);
 
-    float wallRoughness = 0.9f; //🤡
+    float wallRoughness = 0.9f; // 🤡
 
     triangle0.roughness = wallRoughness;
     triangle1.roughness = wallRoughness;
@@ -181,7 +413,7 @@ int main()
     triangle10.roughness = wallRoughness;
     triangle11.roughness = wallRoughness;
 
-    float wallEmissivity = 0.0f; //🤡
+    float wallEmissivity = 0.0f; // 🤡
 
     triangle0.emissivity = wallEmissivity;
     triangle1.emissivity = wallEmissivity;
@@ -205,6 +437,7 @@ int main()
 
     // objects.push_back(std::make_shared<Sphere>(eye_sx));
     // objects.push_back(std::make_shared<Sphere>(eye_dx));
+
     objects.push_back(std::make_shared<Triangle3>(light0));
     objects.push_back(std::make_shared<Triangle3>(light1));
     objects.push_back(std::make_shared<Triangle3>(light2));
@@ -223,77 +456,20 @@ int main()
     objects.push_back(std::make_shared<Triangle3>(triangle10));
     objects.push_back(std::make_shared<Triangle3>(triangle11));
 
-    // Load STL
-    // TODO move into the scene class
-    std::ifstream file("../../Suzanne2.stl", std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file!" << std::endl;
-        return 1;
+    // Load from STL
+    std::vector<std::shared_ptr<SceneObject>> stlObject;
+    stlObject = loadSTL(
+        "../../Suzanne2.stl",
+        1.f, // Roughness
+        0.f, // Emissivity
+        0.f, // Transparency
+        Color(127, 127, 127, 0));
+
+    // Add the STL object to the objects vector
+    for (size_t i = 0; i < stlObject.size(); i++)
+    {
+        objects.push_back(stlObject[i]);
     }
-
-    char header[80];
-
-    file.read(header, 80);
-    // Print the header
-    std::cout << "STL Header: " << std::string(header, 80) << std::endl;
-    
-    unsigned int numTriangles;
-    file.read(reinterpret_cast<char*>(&numTriangles), sizeof(unsigned int));
-    std::cout << "Number of triangles: " << numTriangles << std::endl;
-    
-    for (int i = 0; i<numTriangles - 1; i++){
-        float normal_x;
-        float normal_y;
-        float normal_z;
-        float v1_x;
-        float v1_y;
-        float v1_z;
-        float v2_x;
-        float v2_y;
-        float v2_z;
-        float v3_x;
-        float v3_y;
-        float v3_z;
-        char byteCount[2];
-
-        file.read(reinterpret_cast<char*>(&normal_x), sizeof(float));
-        file.read(reinterpret_cast<char*>(&normal_y), sizeof(float));
-        file.read(reinterpret_cast<char*>(&normal_z), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v1_x), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v1_y), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v1_z), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v2_x), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v2_y), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v2_z), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v3_x), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v3_y), sizeof(float));
-        file.read(reinterpret_cast<char*>(&v3_z), sizeof(float));
-        file.read(byteCount, 2);
-
-    // Debug print
-    // std::cout << "Normal: (" << normal_x << ", " << normal_y << ", " << normal_z << ")" << std::endl;
-    // std::cout << "Vertex 1: (" << v1_x << ", " << v1_y << ", " << v1_z << ")" << std::endl;
-    // std::cout << "Vertex 2: (" << v2_x << ", " << v2_y << ", " << v2_z << ")" << std::endl;
-    // std::cout << "Vertex 3: (" << v3_x << ", " << v3_y << ", " << v3_z << ")" << std::endl;
-    // std::cout << "Byte count: " << (unsigned int)byteCount[0] << std::endl;
-
-    float scale = 70.0f; // Scale factor for the STL model
-    float offsetX = 0.0f; // X-axis offset
-    float offsetY = 70.0f; // Y-axis offset
-    float offsetZ = 70.0f; // Z-axis offset
-
-    Triangle3 triangle = Triangle3(
-        Vector3(v1_y * scale + offsetX, v1_x * scale + offsetY, v1_z * scale + offsetZ),
-        Vector3(v2_y * scale + offsetX, v2_x * scale + offsetY, v2_z * scale + offsetZ),
-        Vector3(v3_y * scale + offsetX, v3_x * scale + offsetY, v3_z * scale + offsetZ));
-    // std::cout << "Normal:" << triangle.n.x << ", " << triangle.n.y << ", " << triangle.n.z << std::endl;
-    triangle.n = normalize(Vector3(normal_y, normal_x, normal_z) * -1.0f);
-    // std::cout << "Normal:" << triangle.n.x << ", " << triangle.n.y << ", " << triangle.n.z << std::endl;
-    triangle.color = Color(80, 80, 80, 0);
-    triangle.roughness = wallRoughness;
-    objects.push_back(std::make_shared<Triangle3>(triangle));
-    }
-
 
     // Create a camera
     Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -450.0f);
@@ -305,116 +481,121 @@ int main()
     CameraText.setFont(font);
     CameraText.setCharacterSize(24);
     CameraText.setFillColor(sf::Color::Red);
-    CameraText.setPosition(sf::Vector2f(10, height - 24 * 4));
+    CameraText.setPosition(sf::Vector2f(10, 10));
+    CameraText.setString("Rendering...");
 
-    int iterations = 0;
-    int iterationsLimit = 10;
-
-    bool averaging = true;
-
+    // Create a list of rendering threads
+    std::vector<std::future<void>> renderingThreads;
     int numThreads = std::thread::hardware_concurrency();
+
+    // Prepare the task queue
+    std::vector<Rectangle> testQueue;
+
+    int xDivs = 10;
+    int xStep = width / xDivs;
+    int yDivs = 10;
+    int yStep = height / yDivs;
+
+    for (int y = yDivs - 1; y >= 0; y--)
+    {
+        for (int x = xDivs - 1; x >= 0; x--)
+        {
+            int startX = x * xStep;
+            int startY = y * yStep;
+            testQueue.push_back(Rectangle(startX, startX + xStep, startY, startY + yStep));
+            // std::cout << "startX: " << startX << ", endX: " << startX+xStep << ", startY: " << startY << ", endY: " << startY+yStep << std::endl;
+        }
+    }
 
     // Print stuff before starting the render
     std::cout << "Number of concurrent threads supported: " << std::thread::hardware_concurrency() << "(" << numThreads << " used)" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
 
+    bool renderFinished = false;
+    int counter = testQueue.size();
+
     // Main rendering loop
     while (window.isOpen())
     {
-        // Check for key presses
-
+        // Handle key presses
         for (auto event = sf::Event{}; window.pollEvent(event);)
         {
             if (event.type == sf::Event::Closed)
             {
                 window.close();
             }
-            else if (event.type == sf::Event::KeyPressed) // Check if a key is pressed
+            else if (event.type == sf::Event::KeyPressed)
             {
-                if (event.key.code == sf::Keyboard::Escape) // Example: check for 'Escape' key
+                //'Escape' key
+                if (event.key.code == sf::Keyboard::Escape)
                 {
-                    window.close(); // Close the window when 'Escape' is pressed
+                    window.close();
                 }
             }
         }
 
-        if (iterations < iterationsLimit)
+        // Rendering part
+        window.clear();
 
+        // Update the rendering threads
+        updateRender(pixelBuffer, camera, width, height, objects, renderingThreads, testQueue, numThreads, counter);
+
+        // Convert the pixel buffer to SFML TODO move to a function/Class/method/somethingthatisnotfullyhere
+        pixels = pixelBuffer.getPixels(); // Get the colors
+        for (unsigned int y = 0; y < height; y++)
         {
-            std::cout << "Rendering: " << iterations + 1 << "/" << iterationsLimit << std::endl;
-            camera.render(pixelBuffer, objects, numThreads);
-
-            // Convert the pixel buffer to SFML
-            pixels = pixelBuffer.getPixels(); // Get the colors
-
-            for (unsigned int y = 0; y < height; y++)
+            for (unsigned int x = 0; x < width; x++)
             {
-                for (unsigned int x = 0; x < width; x++)
-                {
-
-                    Color pixel = pixels[y * width + x];
-
-                    if (pixel.r == 0 && pixel.g == 0 && pixel.b == 0)
-                        continue;
-                    Color tmp;
-
-                    if (averaging)
-                    {
-                        sf::Color oldColor_sfml = pixels_sfml[y * width + x];
-                        Color oldColor = Color(oldColor_sfml.r, oldColor_sfml.g, oldColor_sfml.b, oldColor_sfml.a);
-
-                        // This will average the values between all renders
-                        // float weight = 1.0f / (iterations + 1);
-                        // tmp = oldColor * ( 1 - weight) + pixel * weight;
-                        if (iterations == 0)
-                            tmp = pixel;
-                        else
-                            tmp = averageColors(pixel, oldColor);
-                    }
-                    else
-                    {
-                        tmp = pixel;
-                    }
-
-                    pixels_sfml[y * width + x] = sf::Color(tmp.r, tmp.g, tmp.b);
-                }
+                Color pixel = pixels[y * width + x];
+                if (pixel.r == 0 && pixel.g == 0 && pixel.b == 0)
+                    continue;
+                pixels_sfml[y * width + x] = sf::Color(pixel.r, pixel.g, pixel.b);
             }
-
-            // Update the texture with the pixel buffer data
-            texture.update(reinterpret_cast<const sf::Uint8 *>(pixels_sfml.data()));
-
-            // Camera debug settings
-            char buffer[100];
-            sprintf(buffer, "Camera position: x:%.2f, y:%.2f, z:%.2f\nCamera rotation: x:%.2f, y:%.2f, z:%.2f\nFocal length%.2f",
-                    camera.origin.x,
-                    camera.origin.y,
-                    camera.origin.z,
-                    camera.direction.x,
-                    camera.direction.y,
-                    camera.direction.z,
-                    camera.focalLength);
-            CameraText.setString(buffer);
-
-            window.clear();
-
-            // Create a sprite to draw the texture
-            sf::Sprite sprite(texture);
-            window.draw(sprite); // Draw the sprite containing the texture
-
-            // window.draw(CameraText);
-
-            iterations++;
-
-            window.display();
         }
-        else if (iterations == iterationsLimit)
+
+        // Update the texture with the pixel buffer data
+        texture.update(reinterpret_cast<const sf::Uint8 *>(pixels_sfml.data()));
+
+        sf::Sprite sprite(texture);
+        window.draw(sprite); // Draw the sprite containing the texture
+
+        // Draw rendering rectangles
+        float finished = true;
+
+        for (int i = 0; i < testQueue.size(); i++)
         {
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-
-            std::cout << "Render time: " << elapsed.count() << " seconds\n";
-            iterations++;
+            if (testQueue[i].rendering == true)
+            {
+                sf::RectangleShape rectangle(sf::Vector2f(testQueue[i].endX - testQueue[i].startX, testQueue[i].endY - testQueue[i].startY));
+                rectangle.setFillColor(sf::Color::Transparent);
+                rectangle.setOutlineThickness(1);
+                rectangle.setOutlineColor(sf::Color::Yellow);
+                rectangle.setPosition(testQueue[i].startX, testQueue[i].startY);
+                window.draw(rectangle);
+                finished = false;
+            }
         }
+
+        // TODO clean up this fucking hack
+        if (counter == 0 && finished == true && !renderFinished)
+        {
+            // Render finished
+            renderFinished = true;
+            auto stop = std::chrono::high_resolution_clock::now();
+            CameraText.setString("Render finished in " +
+                                 std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()) +
+                                 "ms!");
+        }
+        // }
+        // sf::RectangleShape rectangle(sf::Vector2f(200, 50));
+        // rectangle.setFillColor(sf::Color::Transparent);
+        // rectangle.setOutlineThickness(2);
+        // rectangle.setOutlineColor(sf::Color::Yellow);
+        // rectangle.setPosition(10, 10);
+        // window.draw(rectangle);
+
+        window.draw(CameraText);
+        window.display();
     }
 
     return 0;
