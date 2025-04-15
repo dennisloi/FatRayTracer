@@ -21,6 +21,8 @@ class Color {
         // bool operator=(const Color& other) const;
 
         Color operator*(const float& val) const;
+
+        Color operator/(const float& val) const;
         
 };
 

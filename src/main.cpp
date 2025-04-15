@@ -20,7 +20,7 @@
 #include <fstream>
 #include <iostream>
 
-#define window_width 1920//640
+#define window_width  1920//640
 #define window_height 1080//480
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
 
@@ -163,7 +163,6 @@ void render(
     int width, int height,
     std::vector<std::shared_ptr<SceneObject>> &objects,
     Rectangle &rectangle,
-    int passes,
     int averages,
     int maxReflections)
 {
@@ -173,25 +172,28 @@ void render(
     {
         for (int x = rectangle.startX; x < rectangle.endX; x++)
         {
+            float r = 0.f;
+            float g = 0.f;
+            float b = 0.f;
+
+
             for (int i = 0; i < averages; i++)
             {
                 Color pixelColor = renderPixel(x, y, camera, width, height, maxReflections, objects);
 
-                for (int j = 0; j < passes - 1; j++)
-                {
-                    pixelColor = pixelColor + renderPixel(x, y, camera, width, height, maxReflections, objects);
-                }
-
-                if (i > 0){
-                // Average
-                Color oldColor = pixelBuffer.getPixels()[y * width + x];
-                Color newColor = oldColor + pixelColor * (1 / (i + 1));
-                pixelBuffer.setPixel(x, y, newColor);
-                }
-                else{
-                    pixelBuffer.setPixel(x, y, pixelColor);
-                }
+                r += (float) pixelColor.r;
+                g += (float) pixelColor.g;
+                b += (float) pixelColor.b;
             }
+            Color finalColor = Color(
+                static_cast<int>(r / averages),
+                static_cast<int>(g / averages),
+                static_cast<int>(b / averages),
+                0
+            );
+
+            //TODO check for gamma correction?
+            pixelBuffer.setPixel(x, y, finalColor);
         }
     }
 
@@ -209,9 +211,8 @@ bool updateRender(
     int &counter)
 {
     // SETTINGS
-    int passes = 3;
-    int averages = 5;
-    int maxReflections = 5;
+    int averages = 100;
+    int maxReflections = 10;
 
         // Start new render threads
     while (renderingThreads.size() < numThreads && counter > 0)
@@ -219,7 +220,7 @@ bool updateRender(
         counter--;
 
         // Start a rendering thread that uses camera.render and the coords from the rectangle
-        renderingThreads.push_back(std::async(std::launch::async, render, std::ref(pixelBuffer), camera, width, height, std::ref(objects), std::ref(testQueue[counter]), passes, averages, maxReflections));
+        renderingThreads.push_back(std::async(std::launch::async, render, std::ref(pixelBuffer), camera, width, height, std::ref(objects), std::ref(testQueue[counter]), averages, maxReflections));
     }
 
     // Terminate finished threads
@@ -536,7 +537,7 @@ int main()
     }
 
     // Create a camera
-    Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -450.0f);
+    Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -400.0f);
     Vector3 cameraDirection = Vector3(0.0f, 0.0f, 1.0f);
     Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 10.0f, 10.0f);
 
@@ -555,9 +556,9 @@ int main()
     // Prepare the task queue
     std::vector<Rectangle> testQueue;
 
-    int xDivs = 40;
+    int xDivs = 20;
     int xStep = width / xDivs; //TODO, check for fractional divisions! May cause part of the image to not be rendered
-    int yDivs = 40;
+    int yDivs = 20;
     int yStep = height / yDivs;
 
     for (int y = yDivs - 1; y >= 0; y--)
