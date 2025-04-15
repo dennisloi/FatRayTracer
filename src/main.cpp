@@ -22,7 +22,7 @@
 
 #define window_width 640
 #define window_height 480
-#define font_path "/home/dennis/Projects/FatRayTracer/assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
+#define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
 
 // Structure used to segment the rendering TODO move
 struct Rectangle
