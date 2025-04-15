@@ -20,9 +20,57 @@
 #include <fstream>
 #include <iostream>
 
-#define window_width 640
-#define window_height 480
+#define window_width 1920//640
+#define window_height 1080//480
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
+
+void Filter(
+    PixelBuffer &pixelBuffer
+)
+{
+    int kernelRadius = 1;
+    std::vector<float> kernel(9); // Todo kernel class
+
+    // Gaussian kernel
+    kernel[0] = 1.0f / 16.0f;
+    kernel[1] = 2.0f / 16.0f;
+    kernel[2] = 1.0f / 16.0f;
+    kernel[3] = 2.0f / 16.0f;
+    kernel[4] = 4.0f / 16.0f;
+    kernel[5] = 2.0f / 16.0f;
+    kernel[6] = 1.0f / 16.0f;
+    kernel[7] = 2.0f / 16.0f;
+    kernel[8] = 1.0f / 16.0f;
+    
+
+    PixelBuffer oldBuffer = pixelBuffer;
+
+    for (int y = 0; y < pixelBuffer.height; y++){
+        for(int x = 0; x< pixelBuffer.width; x++){
+
+            float r = 0.f;
+            float g = 0.f;
+            float b = 0.f;
+
+            for(int dy = -kernelRadius; dy <= kernelRadius; dy++){
+                for(int dx = -kernelRadius; dx <= kernelRadius; dx++){
+
+                    int ny = y + dy;
+                    int nx = x + dx;
+
+                    // Check for edge of the buffer
+                    if (nx >= pixelBuffer.width || nx < 0 || ny >= pixelBuffer.height || ny < 0) continue;
+
+                    r += oldBuffer.getPixels()[ny * pixelBuffer.width + nx].r * kernel[(dy + kernelRadius) * kernelRadius + (dx + kernelRadius)];
+                    g += oldBuffer.getPixels()[ny * pixelBuffer.width + nx].g * kernel[(dy + kernelRadius) * kernelRadius + (dx + kernelRadius)];
+                    b += oldBuffer.getPixels()[ny * pixelBuffer.width + nx].b * kernel[(dy + kernelRadius) * kernelRadius + (dx + kernelRadius)];
+                }
+            }
+
+            pixelBuffer.setPixel(x, y, Color(r, g, b, 0));
+        }
+    }
+}
 
 // Structure used to segment the rendering TODO move
 struct Rectangle
@@ -115,9 +163,9 @@ void render(
     int width, int height,
     std::vector<std::shared_ptr<SceneObject>> &objects,
     Rectangle &rectangle,
-    int passes = 1,
-    int averages = 1,
-    int maxReflections = 5)
+    int passes,
+    int averages,
+    int maxReflections)
 {
     rectangle.rendering = true;
 
@@ -127,17 +175,22 @@ void render(
         {
             for (int i = 0; i < averages; i++)
             {
-                Color pixelColor;
+                Color pixelColor = renderPixel(x, y, camera, width, height, maxReflections, objects);
 
-                for (int j = 0; j < passes; j++)
+                for (int j = 0; j < passes - 1; j++)
                 {
                     pixelColor = pixelColor + renderPixel(x, y, camera, width, height, maxReflections, objects);
                 }
 
+                if (i > 0){
                 // Average
                 Color oldColor = pixelBuffer.getPixels()[y * width + x];
                 Color newColor = oldColor + pixelColor * (1 / (i + 1));
                 pixelBuffer.setPixel(x, y, newColor);
+                }
+                else{
+                    pixelBuffer.setPixel(x, y, pixelColor);
+                }
             }
         }
     }
@@ -157,7 +210,7 @@ bool updateRender(
 {
     // SETTINGS
     int passes = 3;
-    int averages = 2;
+    int averages = 5;
     int maxReflections = 5;
 
         // Start new render threads
@@ -502,9 +555,9 @@ int main()
     // Prepare the task queue
     std::vector<Rectangle> testQueue;
 
-    int xDivs = 20;
+    int xDivs = 40;
     int xStep = width / xDivs; //TODO, check for fractional divisions! May cause part of the image to not be rendered
-    int yDivs = 20;
+    int yDivs = 40;
     int yStep = height / yDivs;
 
     for (int y = yDivs - 1; y >= 0; y--)
@@ -573,6 +626,11 @@ int main()
                     }
 
                     CameraText.setString("Stopping...");
+                }
+                //'F' key
+                if (event.key.code == sf::Keyboard::F)
+                {
+                    Filter(pixelBuffer);
                 }
                 //'Escape' key
                 if (event.key.code == sf::Keyboard::Escape || ((event.key.control && event.key.code == sf::Keyboard::C)))

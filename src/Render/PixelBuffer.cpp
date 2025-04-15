@@ -34,7 +34,7 @@ void PixelBuffer::clearBuffer(){
     {
         for (unsigned int x = 0; x < width; ++x)
         {
-            pixels[y * width + x] = Color(0, 0, 0, 0);
+            pixels[y * width + x] = Color(127, 127, 127, 0);
         }
     }
 }
