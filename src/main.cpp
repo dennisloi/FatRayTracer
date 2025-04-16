@@ -20,7 +20,7 @@
 #include <fstream>
 #include <iostream>
 
-#define window_width  1920//640
+#define window_width  1080//640
 #define window_height 1080//480
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
 
@@ -191,6 +191,24 @@ void render(
             g = g / averages;
             b = b / averages;
 
+            // // Blend it with the current pixel buffer
+            // if (blend) {
+            //     Color oldColor = pixelBuffer.getPixels()[y * width + x];
+            //     float oldRed = oldColor.r;
+            //     float oldGreen = oldColor.g;
+            //     float oldBlue = oldColor.b;
+
+            //     // Undo Gamma correction
+            //     oldRed = std::pow(oldRed / 255, 2) * 255;
+            //     oldGreen = std::pow(oldGreen / 255, 2) * 255;
+            //     oldBlue = std::pow(oldBlue / 255, 2) * 255;
+
+                
+            //     // Average old and new colors
+            //     r = (r + oldRed) / 2;
+            //     g = (g + oldGreen) / 2;
+            //     b = (b + oldBlue) / 2;
+            // }
 
             // Gamma correction
             r = std::sqrt(r/255)*255;
@@ -551,7 +569,8 @@ int main()
     // Create a camera
     Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -400.0f);
     Vector3 cameraDirection = Vector3(0.0f, 0.0f, 1.0f);
-    Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 10.0f, 10.0f);
+    float aspectRatio = static_cast<float>(width) / height;
+    Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 10.f*aspectRatio, 10.f);
 
     // Camera settings
     sf::Text CameraText;
