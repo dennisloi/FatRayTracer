@@ -1,6 +1,6 @@
 
-![Test Image](Suzanne.png)
-![Test Image](Suzanne2.png)
+![Test Image](Suzanne_new.png)
+<!-- ![Test Image](Suzanne2.png) -->
 
 # CMake SFML Project Template
 
