@@ -185,14 +185,26 @@ void render(
                 g += (float) pixelColor.g;
                 b += (float) pixelColor.b;
             }
+
+            // Divide by the averages
+            r = r / averages;
+            g = g / averages;
+            b = b / averages;
+
+
+            // Gamma correction
+            r = std::sqrt(r/255)*255;
+            g = std::sqrt(g/255)*255;
+            b = std::sqrt(b/255)*255;
+
+
             Color finalColor = Color(
-                static_cast<int>(r / averages),
-                static_cast<int>(g / averages),
-                static_cast<int>(b / averages),
+                static_cast<int>(r),
+                static_cast<int>(g),
+                static_cast<int>(b),
                 0
             );
-
-            //TODO check for gamma correction?
+            
             pixelBuffer.setPixel(x, y, finalColor);
         }
     }
