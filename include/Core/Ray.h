@@ -10,7 +10,7 @@ class Ray3
     
     Vector3 origin, direction;
 
-    Color color = Color((unsigned char) 255, (unsigned char) 255, (unsigned char) 255, (unsigned char) 0);
+    Color color = Color(1.f, 1.f, 1.f);
 
     // Default constructor
     Ray3();

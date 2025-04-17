@@ -24,7 +24,7 @@ Color getSkybox(const Ray3& ray){
     
     // If the y direction is negative, return the sky
     if(ray.direction.y < 0){
-        return Color(0, 5, 40, 0);
+        return Color(0.f, 0.02f, 0.15f);
     }
-    return Color(30, 10, 0, 0);
+    return Color(0.15f, 0.02f, 0);
 }

@@ -20,8 +20,8 @@
 #include <fstream>
 #include <iostream>
 
-#define window_width  1080//640
-#define window_height 1080//480
+#define window_width  400
+#define window_height 400
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
 
 void Filter(
@@ -67,7 +67,7 @@ void Filter(
                 }
             }
 
-            pixelBuffer.setPixel(x, y, Color(r, g, b, 0));
+            pixelBuffer.setPixel(x, y, Color(r, g, b));
         }
     }
 }
@@ -181,9 +181,9 @@ void render(
             {
                 Color pixelColor = renderPixel(x, y, camera, width, height, maxReflections, objects);
 
-                r += (float) pixelColor.r;
-                g += (float) pixelColor.g;
-                b += (float) pixelColor.b;
+                r += pixelColor.r;
+                g += pixelColor.g;
+                b += pixelColor.b;
             }
 
             // Divide by the averages
@@ -211,17 +211,12 @@ void render(
             // }
 
             // Gamma correction
-            r = std::sqrt(r/255)*255;
-            g = std::sqrt(g/255)*255;
-            b = std::sqrt(b/255)*255;
+            // r = std::sqrt(r/255)*255;
+            // g = std::sqrt(g/255)*255;
+            // b = std::sqrt(b/255)*255;
 
 
-            Color finalColor = Color(
-                static_cast<int>(r),
-                static_cast<int>(g),
-                static_cast<int>(b),
-                0
-            );
+            Color finalColor = Color(r, g, b);
             
             pixelBuffer.setPixel(x, y, finalColor);
         }
@@ -241,8 +236,8 @@ bool updateRender(
     int &counter)
 {
     // SETTINGS
-    int averages = 100;
-    int maxReflections = 10;
+    int averages = 5;
+    int maxReflections = 3;
 
         // Start new render threads
     while (renderingThreads.size() < numThreads && counter > 0)
@@ -399,10 +394,10 @@ int main()
 
     Sphere sphere0 = Sphere(Vector3(50.0f, 0.0f, 0.0f), 50.f);
     // sphere0.transparency = 0.8;
-    sphere0.color = Color(160, 160, 160, 0);
+    sphere0.color = Color(0.6f, 0.6f, 0.6f);
     sphere0.roughness = 1.0f;
 
-    Color lightColor = Color(255, 255, 255, 0);
+    Color lightColor = Color(1.f, 1.f, 1.f);
 
     float lightSize = 90.0f;
     float lightHeight = -80.f;
@@ -467,31 +462,18 @@ int main()
     // triangle10.emissivity = 0.1f;
     // triangle11.emissivity = 0.1f;
 
-    triangle0.color = Color(50, 50, 127, 0);
-    triangle1.color = Color(50, 50, 127, 0);
-    triangle2.color = Color(50, 127, 127, 0);
-    triangle3.color = Color(50, 127, 127, 0);
-    triangle4.color = Color(50, 127, 50, 0);
-    triangle5.color = Color(50, 127, 50, 0);
-    triangle6.color = Color(127, 50, 25, 0);
-    triangle7.color = Color(127, 50, 25, 0);
-    triangle8.color = Color(127, 25, 25, 0);
-    triangle9.color = Color(127, 25, 25, 0);
-    triangle10.color = Color(127, 127, 127, 0);
-    triangle11.color = Color(127, 127, 127, 0);
-
-    // triangle0.color = Color(255, 255, 255, 0);
-    // triangle1.color = Color(255, 255, 255, 0);
-    // triangle2.color = Color(255, 255, 255, 0);
-    // triangle3.color = Color(255, 255, 255, 0);
-    // triangle4.color = Color(255, 255, 255, 0);
-    // triangle5.color = Color(255, 255, 255, 0);
-    // triangle6.color = Color(255, 255, 255, 0);
-    // triangle7.color = Color(255, 255, 255, 0);
-    // triangle8.color = Color(255, 255, 255, 0);
-    // triangle9.color = Color(255, 255, 255, 0);
-    // triangle10.color = Color(255, 255, 255, 0);
-    // triangle11.color = Color(255, 255, 255, 0);
+    triangle0.color = Color(50.0f / 255.0f, 50.0f / 255.0f, 127.0f / 255.0f);
+    triangle1.color = Color(50.0f / 255.0f, 50.0f / 255.0f, 127.0f / 255.0f);
+    triangle2.color = Color(50.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f);
+    triangle3.color = Color(50.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f);
+    triangle4.color = Color(50.0f / 255.0f, 127.0f / 255.0f, 50.0f / 255.0f);
+    triangle5.color = Color(50.0f / 255.0f, 127.0f / 255.0f, 50.0f / 255.0f);
+    triangle6.color = Color(127.0f / 255.0f, 50.0f / 255.0f, 25.0f / 255.0f);
+    triangle7.color = Color(127.0f / 255.0f, 50.0f / 255.0f, 25.0f / 255.0f);
+    triangle8.color = Color(127.0f / 255.0f, 25.0f / 255.0f, 25.0f / 255.0f);
+    triangle9.color = Color(127.0f / 255.0f, 25.0f / 255.0f, 25.0f / 255.0f);
+    triangle10.color = Color(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f);
+    triangle11.color = Color(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f);
 
     float wallRoughness = 0.9f; // 🤡
 
@@ -525,10 +507,10 @@ int main()
 
     Sphere eye_sx = Sphere(Vector3(-25.0f, 20.0f, 00.0f), 15.f);
     eye_sx.emissivity = 1.0f;
-    eye_sx.color = Color(255, 0, 0, 0);
+    eye_sx.color = Color(1.f, 0.f, 0.f);
     Sphere eye_dx = Sphere(Vector3(25.0f, 20.0f, 00.0f), 15.f);
     eye_dx.emissivity = 1.0f;
-    eye_dx.color = Color(0, 0, 255, 0);
+    eye_dx.color = Color(0.f, 0.f, 1.f);
 
     // objects.push_back(std::make_shared<Sphere>(eye_sx));
     // objects.push_back(std::make_shared<Sphere>(eye_dx));
@@ -558,7 +540,7 @@ int main()
         1.f, // Roughness
         0.f, // Emissivity
         0.f, // Transparency
-        Color(127, 127, 127, 0));
+        Color(0.5f, 0.5f, 0.5f));
 
     // Add the STL object to the objects vector
     for (size_t i = 0; i < stlObject.size(); i++)
@@ -693,7 +675,18 @@ int main()
             for (unsigned int x = 0; x < width; x++)
             {
                 Color pixel = pixels[y * width + x];
-                pixels_sfml[y * width + x] = sf::Color(pixel.r, pixel.g, pixel.b);
+
+                // Apply Gamma correction
+                float r = std::sqrt(pixel.r) * 255;
+                float g = std::sqrt(pixel.g) * 255;
+                float b = std::sqrt(pixel.b) * 255;
+
+                // Cast to Uint8
+                pixels_sfml[y * width + x] = sf::Color(
+                static_cast<unsigned char>(std::min(std::max(r, 0.f), 255.f)),
+                static_cast<unsigned char>(std::min(std::max(g, 0.f), 255.f)),
+                static_cast<unsigned char>(std::min(std::max(b, 0.f), 255.f))
+                );
             }
         }
 
@@ -723,7 +716,6 @@ int main()
         }
 
         // TODO clean up this fucking hack
-        // if (counter == 0 && finished == true && !renderFinished)
         if (renderFinished)
         {
             // Render finished
