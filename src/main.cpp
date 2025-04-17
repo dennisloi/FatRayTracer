@@ -9,6 +9,7 @@
 #include "Core/Triangle.h"
 #include "Core/Sphere.h"
 #include "Render/PixelBuffer.h"
+#include "Render/Render.h"
 #include "Utils/Color.h"
 #include "Render/Camera.h"
 #include <iostream>
@@ -20,249 +21,9 @@
 #include <fstream>
 #include <iostream>
 
-#define window_width  400
+#define window_width 400
 #define window_height 400
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
-
-void Filter(
-    PixelBuffer &pixelBuffer
-)
-{
-    int kernelRadius = 1;
-    std::vector<float> kernel(9); // Todo kernel class
-
-    // Gaussian kernel
-    kernel[0] = 1.0f / 16.0f;
-    kernel[1] = 2.0f / 16.0f;
-    kernel[2] = 1.0f / 16.0f;
-    kernel[3] = 2.0f / 16.0f;
-    kernel[4] = 4.0f / 16.0f;
-    kernel[5] = 2.0f / 16.0f;
-    kernel[6] = 1.0f / 16.0f;
-    kernel[7] = 2.0f / 16.0f;
-    kernel[8] = 1.0f / 16.0f;
-    
-
-    PixelBuffer oldBuffer = pixelBuffer;
-
-    for (int y = 0; y < pixelBuffer.height; y++){
-        for(int x = 0; x< pixelBuffer.width; x++){
-
-            float r = 0.f;
-            float g = 0.f;
-            float b = 0.f;
-
-            for(int dy = -kernelRadius; dy <= kernelRadius; dy++){
-                for(int dx = -kernelRadius; dx <= kernelRadius; dx++){
-
-                    int ny = y + dy;
-                    int nx = x + dx;
-
-                    // Check for edge of the buffer
-                    if (nx >= pixelBuffer.width || nx < 0 || ny >= pixelBuffer.height || ny < 0) continue;
-
-                    r += oldBuffer.getPixels()[ny * pixelBuffer.width + nx].r * kernel[(dy + kernelRadius) * kernelRadius + (dx + kernelRadius)];
-                    g += oldBuffer.getPixels()[ny * pixelBuffer.width + nx].g * kernel[(dy + kernelRadius) * kernelRadius + (dx + kernelRadius)];
-                    b += oldBuffer.getPixels()[ny * pixelBuffer.width + nx].b * kernel[(dy + kernelRadius) * kernelRadius + (dx + kernelRadius)];
-                }
-            }
-
-            pixelBuffer.setPixel(x, y, Color(r, g, b));
-        }
-    }
-}
-
-// Structure used to segment the rendering TODO move
-struct Rectangle
-{
-    int startX;
-    int endX;
-    int startY;
-    int endY;
-    bool done = false;
-    bool rendering = false;
-
-    Rectangle(int sx, int ex, int sy, int ey)
-        : startX(sx), endX(ex), startY(sy), endY(ey) {}
-};
-
-// TODO move
-Color renderPixel(
-    int x, int y,
-    Camera3 camera,
-    int width, int height,
-    int maxReflections,
-    const std::vector<std::shared_ptr<SceneObject>> &objects)
-{
-
-    float xStep = camera.width / width;
-    float yStep = camera.height / height;
-
-    Vector3 RayDirection(
-        (float)x * xStep - xStep * width / 2,
-        (float)y * yStep - yStep * height / 2,
-        camera.focalLength);
-
-    RayDirection = normalize(RayDirection + getRandomDirection() * 0.01f); // TODO variable
-
-    Vector3 RayOrigin = camera.origin;
-    Ray3 ray = Ray3(RayOrigin, RayDirection);
-
-    Ray3 reflection;
-
-    float minDistance = std::numeric_limits<float>::max();
-    Ray3 closestObjectReflection;
-    int closestObjectIndex = -1;
-    bool hit = false;
-
-    for (int i = 0; i < maxReflections; i++)
-    {
-        hit = false;
-
-        for (size_t j = 0; j < objects.size(); j++)
-        {
-            if (objects[j]->Intersect(ray, reflection))
-            {
-                float distance = (reflection.origin - ray.origin).getLength();
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    closestObjectReflection = reflection;
-                    closestObjectIndex = j;
-                }
-                hit = true;
-            }
-        }
-
-        if (hit)
-        {
-            ray = closestObjectReflection;
-            if (objects[closestObjectIndex]->emissivity > 0.0f)
-            {
-                Color c = ray.color * objects[closestObjectIndex]->emissivity * 2;
-                return c;
-            }
-        }
-    }
-
-    if (!hit)
-    {
-        Color c = Color();
-        return ray.color * getSkybox(ray);
-        return c;
-    }
-
-    // In case no return hit above (shouldn't happen logically, but to be safe)
-    return Color();
-}
-
-// TODO move
-void render(
-    PixelBuffer &pixelBuffer,
-    Camera3 camera,
-    int width, int height,
-    std::vector<std::shared_ptr<SceneObject>> &objects,
-    Rectangle &rectangle,
-    int averages,
-    int maxReflections)
-{
-    rectangle.rendering = true;
-
-    for (int y = rectangle.startY; y < rectangle.endY; y++)
-    {
-        for (int x = rectangle.startX; x < rectangle.endX; x++)
-        {
-            float r = 0.f;
-            float g = 0.f;
-            float b = 0.f;
-
-
-            for (int i = 0; i < averages; i++)
-            {
-                Color pixelColor = renderPixel(x, y, camera, width, height, maxReflections, objects);
-
-                r += pixelColor.r;
-                g += pixelColor.g;
-                b += pixelColor.b;
-            }
-
-            // Divide by the averages
-            r = r / averages;
-            g = g / averages;
-            b = b / averages;
-
-            // // Blend it with the current pixel buffer
-            // if (blend) {
-            //     Color oldColor = pixelBuffer.getPixels()[y * width + x];
-            //     float oldRed = oldColor.r;
-            //     float oldGreen = oldColor.g;
-            //     float oldBlue = oldColor.b;
-
-            //     // Undo Gamma correction
-            //     oldRed = std::pow(oldRed / 255, 2) * 255;
-            //     oldGreen = std::pow(oldGreen / 255, 2) * 255;
-            //     oldBlue = std::pow(oldBlue / 255, 2) * 255;
-
-                
-            //     // Average old and new colors
-            //     r = (r + oldRed) / 2;
-            //     g = (g + oldGreen) / 2;
-            //     b = (b + oldBlue) / 2;
-            // }
-
-            // Gamma correction
-            // r = std::sqrt(r/255)*255;
-            // g = std::sqrt(g/255)*255;
-            // b = std::sqrt(b/255)*255;
-
-
-            Color finalColor = Color(r, g, b);
-            
-            pixelBuffer.setPixel(x, y, finalColor);
-        }
-    }
-
-    rectangle.rendering = false;
-}
-
-bool updateRender(
-    PixelBuffer &pixelBuffer,
-    Camera3 camera,
-    int width, int height,
-    std::vector<std::shared_ptr<SceneObject>> &objects,
-    std::vector<std::future<void>> &renderingThreads,
-    std::vector<Rectangle> &testQueue,
-    int numThreads,
-    int &counter)
-{
-    // SETTINGS
-    int averages = 5;
-    int maxReflections = 3;
-
-        // Start new render threads
-    while (renderingThreads.size() < numThreads && counter > 0)
-    {
-        counter--;
-
-        // Start a rendering thread that uses camera.render and the coords from the rectangle
-        renderingThreads.push_back(std::async(std::launch::async, render, std::ref(pixelBuffer), camera, width, height, std::ref(objects), std::ref(testQueue[counter]), averages, maxReflections));
-    }
-
-    // Terminate finished threads
-    for (int i = renderingThreads.size() - 1; i >= 0; --i)
-    {
-        if (renderingThreads[i].wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-        {
-            // Thread is finished
-            renderingThreads.erase(renderingThreads.begin() + i); // Remove finished thread
-        }
-    }
-
-    if (renderingThreads.size() == 0)
-        return false;
-    else
-        return true;
-}
 
 std::vector<std::shared_ptr<SceneObject>> loadSTL(
     const std::string &fileName,
@@ -552,7 +313,7 @@ int main()
     Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -400.0f);
     Vector3 cameraDirection = Vector3(0.0f, 0.0f, 1.0f);
     float aspectRatio = static_cast<float>(width) / height;
-    Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 10.f*aspectRatio, 10.f);
+    Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 10.f * aspectRatio, 10.f);
 
     // Camera settings
     sf::Text CameraText;
@@ -566,34 +327,27 @@ int main()
     std::vector<std::future<void>> renderingThreads;
     int numThreads = std::thread::hardware_concurrency();
 
-    // Prepare the task queue
-    std::vector<Rectangle> testQueue;
-
-    int xDivs = 20;
-    int xStep = width / xDivs; //TODO, check for fractional divisions! May cause part of the image to not be rendered
-    int yDivs = 20;
-    int yStep = height / yDivs;
-
-    for (int y = yDivs - 1; y >= 0; y--)
-    {
-        for (int x = xDivs - 1; x >= 0; x--)
-        {
-            int startX = x * xStep;
-            int startY = y * yStep;
-            testQueue.push_back(Rectangle(startX, startX + xStep, startY, startY + yStep));
-            // std::cout << "startX: " << startX << ", endX: " << startX+xStep << ", startY: " << startY << ", endY: " << startY+yStep << std::endl;
-        }
-    }
-
     // Print stuff before starting the render
     std::cout << "Number of concurrent threads supported: " << std::thread::hardware_concurrency() << "(" << numThreads << " used)" << std::endl;
     std::chrono::time_point<std::chrono::high_resolution_clock> start;
     std::chrono::time_point<std::chrono::high_resolution_clock> stop;
     sf::Sprite sprite(texture);
 
+    // Rendering settings
+    int averages = 5;
+    int maxReflections = 3;
+    float antialiasing = 0.001f;
+
+    // Create render object
+    Render3 renderer(camera, objects, averages, maxReflections, width, height, antialiasing);
+
+    // Create render queue
+    int divsX = 10;
+    int divsY = 10;
+    renderer.createRenderQueue(divsX, divsY);
+
     bool rendering = false;
     bool renderFinished = false;
-    int counter = testQueue.size();
 
     // Main rendering loop
     while (window.isOpen())
@@ -618,14 +372,7 @@ int main()
                         CameraText.setString("Rendering...");
                         pixelBuffer.clearBuffer();
 
-                        counter = testQueue.size();
-
-                        for (int i = 0; i < testQueue.size(); i++)
-                        {
-                            testQueue[i].done = false;
-                            testQueue[i].rendering = false;
-                        }
-
+                        renderer.createRenderQueue(divsX, divsY);
                         start = std::chrono::high_resolution_clock::now();
                     }
                 }
@@ -634,19 +381,8 @@ int main()
                 if (event.key.code == sf::Keyboard::C)
                 {
                     rendering = false;
-                    for (int i = 0; i < testQueue.size(); i++)
-                    {
-                        testQueue[i].done = false;
-                    }
-
                     CameraText.setString("Stopping...");
                 }
-                //'F' key
-                if (event.key.code == sf::Keyboard::F)
-                {
-                    Filter(pixelBuffer);
-                }
-                //'Escape' key
                 if (event.key.code == sf::Keyboard::Escape || ((event.key.control && event.key.code == sf::Keyboard::C)))
                 {
                     window.close();
@@ -660,7 +396,7 @@ int main()
         if (rendering)
         {
             // Update the rendering threads
-            rendering = updateRender(pixelBuffer, camera, width, height, objects, renderingThreads, testQueue, numThreads, counter);
+            rendering = renderer.renderLoop(pixelBuffer, numThreads * 2);
             if (!rendering)
             {
                 renderFinished = true;
@@ -683,10 +419,9 @@ int main()
 
                 // Cast to Uint8
                 pixels_sfml[y * width + x] = sf::Color(
-                static_cast<unsigned char>(std::min(std::max(r, 0.f), 255.f)),
-                static_cast<unsigned char>(std::min(std::max(g, 0.f), 255.f)),
-                static_cast<unsigned char>(std::min(std::max(b, 0.f), 255.f))
-                );
+                    static_cast<unsigned char>(std::min(std::max(r, 0.f), 255.f)),
+                    static_cast<unsigned char>(std::min(std::max(g, 0.f), 255.f)),
+                    static_cast<unsigned char>(std::min(std::max(b, 0.f), 255.f)));
             }
         }
 
@@ -696,26 +431,25 @@ int main()
         // Draw the sprite containing the texture
         window.draw(sprite);
 
-        // Draw rendering rectangles
-        for (int i = 0; i < testQueue.size(); i++)
-        {
-            if (testQueue[i].rendering == true)
-            {
-                sf::RectangleShape rectangle(sf::Vector2f(testQueue[i].endX - testQueue[i].startX, testQueue[i].endY - testQueue[i].startY));
-                rectangle.setFillColor(sf::Color::Transparent);
-                rectangle.setOutlineThickness(1);
-                rectangle.setPosition(testQueue[i].startX, testQueue[i].startY);
+        // // Draw rendering rectangles
+        // for (int i = 0; i < testQueue.size(); i++)
+        // {
+        //     if (testQueue[i].rendering == true)
+        //     {
+        //         sf::RectangleShape rectangle(sf::Vector2f(testQueue[i].endX - testQueue[i].startX, testQueue[i].endY - testQueue[i].startY));
+        //         rectangle.setFillColor(sf::Color::Transparent);
+        //         rectangle.setOutlineThickness(1);
+        //         rectangle.setPosition(testQueue[i].startX, testQueue[i].startY);
 
-                if (rendering)
-                    rectangle.setOutlineColor(sf::Color::Yellow);
-                else
-                    rectangle.setOutlineColor(sf::Color::Red);
+        //         if (rendering)
+        //             rectangle.setOutlineColor(sf::Color::Yellow);
+        //         else
+        //             rectangle.setOutlineColor(sf::Color::Red);
 
-                window.draw(rectangle);
-            }
-        }
+        //         window.draw(rectangle);
+        //     }
+        // }
 
-        // TODO clean up this fucking hack
         if (renderFinished)
         {
             // Render finished
