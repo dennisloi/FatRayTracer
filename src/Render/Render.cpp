@@ -5,6 +5,8 @@
 #include <vector>
 #include <mutex>
 #include <atomic>
+#include <iostream>
+#include <algorithm>
 
 // Default constructor
 Render3::Render3(
@@ -19,41 +21,87 @@ Render3::Render3(
 {
 }
 
-void Render3::createRenderQueue(
-    int divsX, int divsY)
+
+// TODO manage not integer divisions
+void Render3::createRenderQueue(int divs, RenderQueueType type)
 {
-    // Clear renderere queue
     renderingQueue.clear();
 
-    // TODO, check for fractional divisions! May cause part of the image to not be rendered
-    int xStep = resX / divsX;
-    int yStep = resY / divsY;
+    int xStep = (resX + divs - 1) / divs;
+    int yStep = (resY + divs - 1) / divs;
 
-    // TODO, fancy spiral queue to render the center first?
-    for (int y = divsY - 1; y >= 0; y--)
+    switch (type)
     {
-        for (int x = divsX - 1; x >= 0; x--)
+    case RenderQueueType::Grid:
+        for (int y = divs - 1; y >= 0; y--)
         {
-            int startX = x * xStep;
-            int startY = y * yStep;
-            renderingQueue.push_back(renderRectangle3(startX, startX + xStep, startY, startY + yStep));
-            // std::cout << "startX: " << startX << ", endX: " << startX+xStep << ", startY: " << startY << ", endY: " << startY+yStep << std::endl;
+            for (int x = divs - 1; x >= 0; x--)
+            {
+                int startX = x * xStep;
+                int startY = y * yStep;
+                renderingQueue.push_back(renderRectangle3(startX, std::min(startX + xStep, resX),
+                                                          startY, std::min(startY + yStep, resY)));
+            }
         }
+        break;
+
+    case RenderQueueType::Spiral:
+        {
+            int i = divs - 1;
+            int x = 0;
+            int y = 0;
+            int dir = 1;
+
+            while (true)
+            {
+                for (int j = 0; j < i; j++)
+                {
+                    int startX = x * xStep;
+                    int startY = y * yStep;
+                    renderingQueue.push_back(renderRectangle3(startX, std::min(startX + xStep, resX),
+                                                              startY, std::min(startY + yStep, resY)));
+                    x += dir;
+                }
+                for (int j = 0; j < i; j++)
+                {
+                    int startX = x * xStep;
+                    int startY = y * yStep;
+                    renderingQueue.push_back(renderRectangle3(startX, std::min(startX + xStep, resX),
+                                                              startY, std::min(startY + yStep, resY)));
+                    y += dir;
+                }
+                i--;
+                if (i == 0)
+                {
+                    int startX = x * xStep;
+                    int startY = y * yStep;
+                    renderingQueue.push_back(renderRectangle3(startX, std::min(startX + xStep, resX),
+                                                              startY, std::min(startY + yStep, resY)));
+                    break;
+                }
+                dir = -dir;
+            }
+        }
+        break;
     }
 }
+
 
 Color Render3::renderRay(Ray3 ray)
 {
     Ray3 reflection;
 
-    float minDistance = std::numeric_limits<float>::max();
+    float minDistance;
     Ray3 closestObjectReflection;
-    int closestObjectIndex = -1;
+    int closestObjectIndex;
     bool hit = false;
 
     for (int i = 0; i < maxReflections; i++)
     {
         hit = false;
+        minDistance = std::numeric_limits<float>::max();
+        closestObjectIndex = -1;
+
         for (size_t j = 0; j < objects.size(); j++)
         {
             if (objects[j]->Intersect(ray, reflection))
@@ -116,6 +164,9 @@ void Render3::render(PixelBuffer &pixelBuffer, renderRectangle3 &rectangle)
 
     // Mark the rectangle as rendering
     rectangle.rendering = true;
+
+    Ray3 ray;
+    Color pixelColor;
     for (int y = rectangle.startY; y < rectangle.endY; y++)
     {
         for (int x = rectangle.startX; x < rectangle.endX; x++)
@@ -124,13 +175,13 @@ void Render3::render(PixelBuffer &pixelBuffer, renderRectangle3 &rectangle)
             float g = 0.f;
             float b = 0.f;
 
-            // Generate the ray
-            Ray3 ray = createRay(x, y);
-
             for (int i = 0; i < averages; i++)
             {
+                // Generate the ray
+                ray = createRay(x, y);
+
                 // Render the ray
-                Color pixelColor = renderRay(ray);
+                pixelColor = renderRay(ray);
 
                 r += pixelColor.r;
                 g += pixelColor.g;
@@ -142,9 +193,7 @@ void Render3::render(PixelBuffer &pixelBuffer, renderRectangle3 &rectangle)
             g = g / averages;
             b = b / averages;
 
-            Color finalColor = Color(r, g, b);
-
-            pixelBuffer.setPixel(x, y, finalColor);
+            pixelBuffer.setPixel(x, y, Color(r, g, b));
         }
     }
 
@@ -180,7 +229,7 @@ bool Render3::renderLoop(PixelBuffer &pixelBuffer, int numThreads)
         }
     }
 
-    if (renderingThreads.size() == 0)
+    if (renderingThreads.size() == 0 && renderingQueue.size() == 0)
         return false;
     else
         return true;

@@ -21,8 +21,8 @@
 #include <fstream>
 #include <iostream>
 
-#define window_width 400
-#define window_height 400
+#define window_width 600
+#define window_height 600
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
 
 std::vector<std::shared_ptr<SceneObject>> loadSTL(
@@ -334,17 +334,15 @@ int main()
     sf::Sprite sprite(texture);
 
     // Rendering settings
-    int averages = 5;
-    int maxReflections = 3;
-    float antialiasing = 0.001f;
+    int averages = 20;
+    int maxReflections = 5;
+    float antialiasing = 0.0001f;
 
     // Create render object
     Render3 renderer(camera, objects, averages, maxReflections, width, height, antialiasing);
 
     // Create render queue
-    int divsX = 10;
-    int divsY = 10;
-    renderer.createRenderQueue(divsX, divsY);
+    int divs = 20;
 
     bool rendering = false;
     bool renderFinished = false;
@@ -372,7 +370,7 @@ int main()
                         CameraText.setString("Rendering...");
                         pixelBuffer.clearBuffer();
 
-                        renderer.createRenderQueue(divsX, divsY);
+                        renderer.createRenderQueue(divs, RenderQueueType::Spiral); //or RenderQueueType::Grid
                         start = std::chrono::high_resolution_clock::now();
                     }
                 }
@@ -430,25 +428,6 @@ int main()
 
         // Draw the sprite containing the texture
         window.draw(sprite);
-
-        // // Draw rendering rectangles
-        // for (int i = 0; i < testQueue.size(); i++)
-        // {
-        //     if (testQueue[i].rendering == true)
-        //     {
-        //         sf::RectangleShape rectangle(sf::Vector2f(testQueue[i].endX - testQueue[i].startX, testQueue[i].endY - testQueue[i].startY));
-        //         rectangle.setFillColor(sf::Color::Transparent);
-        //         rectangle.setOutlineThickness(1);
-        //         rectangle.setPosition(testQueue[i].startX, testQueue[i].startY);
-
-        //         if (rendering)
-        //             rectangle.setOutlineColor(sf::Color::Yellow);
-        //         else
-        //             rectangle.setOutlineColor(sf::Color::Red);
-
-        //         window.draw(rectangle);
-        //     }
-        // }
 
         if (renderFinished)
         {

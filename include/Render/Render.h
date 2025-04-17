@@ -25,6 +25,11 @@ class renderRectangle3
 
 };
 
+enum class RenderQueueType {
+    Grid,
+    Spiral
+};
+
 class Render3
 {
     public:
@@ -54,9 +59,8 @@ class Render3
             float antialiasing_ = 0.01f
         );
 
-        void createRenderQueue(
-            int divsX, int divsY
-        );
+        void createRenderQueue(int divs, RenderQueueType type = RenderQueueType::Grid);
+
 
         // Takes a ray and a scene, and outputs a color
         Color renderRay(
