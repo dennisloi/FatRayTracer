@@ -21,7 +21,6 @@ Render3::Render3(
 {
 }
 
-
 // TODO manage not integer divisions
 void Render3::createRenderQueue(int divs, RenderQueueType type)
 {
@@ -46,46 +45,40 @@ void Render3::createRenderQueue(int divs, RenderQueueType type)
         break;
 
     case RenderQueueType::Spiral:
+    {
+        for (int i = divs - 1; i > 0; i--)
         {
-            int i = divs - 1;
-            int x = 0;
-            int y = 0;
-            int dir = 1;
-
-            while (true)
-            {
-                for (int j = 0; j < i; j++)
-                {
-                    int startX = x * xStep;
-                    int startY = y * yStep;
-                    renderingQueue.push_back(renderRectangle3(startX, std::min(startX + xStep, resX),
-                                                              startY, std::min(startY + yStep, resY)));
-                    x += dir;
-                }
-                for (int j = 0; j < i; j++)
-                {
-                    int startX = x * xStep;
-                    int startY = y * yStep;
-                    renderingQueue.push_back(renderRectangle3(startX, std::min(startX + xStep, resX),
-                                                              startY, std::min(startY + yStep, resY)));
-                    y += dir;
-                }
-                i--;
-                if (i == 0)
-                {
-                    int startX = x * xStep;
-                    int startY = y * yStep;
-                    renderingQueue.push_back(renderRectangle3(startX, std::min(startX + xStep, resX),
-                                                              startY, std::min(startY + yStep, resY)));
-                    break;
-                }
-                dir = -dir;
-            }
+            renderingQueue.push_back(renderRectangle3(0, xStep, i * yStep, i * yStep + yStep));
         }
-        break;
+
+        int i = divs - 1;
+        int x = 0;
+        int y = 0;
+        int dir = 1;
+        while (true)
+        {
+            for (int j = 0; j < i; j++)
+            {
+                renderingQueue.push_back(renderRectangle3(x * xStep, x * xStep + xStep, y * yStep, y * yStep + yStep));
+                x += dir;
+            }
+            for (int j = 0; j < i; j++)
+            {
+                renderingQueue.push_back(renderRectangle3(x * xStep, x * xStep + xStep, y * yStep, y * yStep + yStep));
+                y += dir;
+            }
+            i--;
+            if (i == 0)
+            {
+                renderingQueue.push_back(renderRectangle3(x * xStep, x * xStep + xStep, y * yStep, y * yStep + yStep));
+                break;
+            }
+            dir = -dir;
+        }
+    }
+    break;
     }
 }
-
 
 Color Render3::renderRay(Ray3 ray)
 {
