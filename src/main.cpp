@@ -311,9 +311,16 @@ int main()
 
     // Create a camera
     Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -400.0f);
-    Vector3 cameraDirection = Vector3(0.0f, 0.0f, 1.0f);
+    Vector3 cameraDirection = normalize(Vector3(0.2f, .0f, 1.0f));
     float aspectRatio = static_cast<float>(width) / height;
+
+    // Prospective
     Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 10.f * aspectRatio, 10.f);
+    camera.projection = ProjectionType::Prospective;
+
+    // Orthographic
+    // Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 300.f * aspectRatio, 300.f);
+    // camera.projection = ProjectionType::Orthographic;
 
     // Camera settings
     sf::Text CameraText;
@@ -334,7 +341,7 @@ int main()
     sf::Sprite sprite(texture);
 
     // Rendering settings
-    int averages = 20;
+    int averages = 1;
     int maxReflections = 5;
     float antialiasing = 0.0001f;
 

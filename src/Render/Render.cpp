@@ -132,10 +132,8 @@ Color Render3::renderRay(Ray3 ray)
     return Color();
 }
 
-Ray3 Render3::createRay(int x, int y)
+Ray3 Render3::createRay(int x, int y, ProjectionType projection)
 {
-    // TODO: ortoview?
-
     // Prospectic
     float ndcX = (x + 0.5f) / resX; // normalized device coordinates [0,1]
     float ndcY = (y + 0.5f) / resY;
@@ -143,11 +141,29 @@ Ray3 Render3::createRay(int x, int y)
     float screenX = (ndcX - 0.5f) * camera.width;
     float screenY = (ndcY - 0.5f) * camera.height; //(0.5f - ndcY) will flip Y
 
-    Vector3 RayDirection = normalize(Vector3(screenX, screenY, camera.focalLength));
+    Vector3 RayDirection;
+    Vector3 RayOrigin;
 
-    RayDirection = normalize(RayDirection + getRandomDirection() * antialiasing);
+    if (projection == ProjectionType::Prospective)
+    {
+        RayDirection = normalize(Vector3(screenX, screenY, camera.focalLength));
 
-    Vector3 RayOrigin = camera.origin;
+        RayDirection = normalize(RayDirection + getRandomDirection() * antialiasing);
+
+        RayOrigin = camera.origin;
+    }
+    else if (projection == ProjectionType::Orthographic)
+    {
+        // In orthographic, direction is fixed
+        RayDirection = camera.direction;
+
+        // Apply antialiasing jitter to origin, not direction
+        Vector3 jitter = getRandomDirection() * antialiasing;
+        RayOrigin = camera.origin + Vector3(screenX, screenY, 0.0f) + jitter;
+    }
+
+    // Orthographic projection
+
     return Ray3(RayOrigin, RayDirection);
 }
 
@@ -171,7 +187,7 @@ void Render3::render(PixelBuffer &pixelBuffer, renderRectangle3 &rectangle)
             for (int i = 0; i < averages; i++)
             {
                 // Generate the ray
-                ray = createRay(x, y);
+                ray = createRay(x, y, camera.projection);
 
                 // Render the ray
                 pixelColor = renderRay(ray);

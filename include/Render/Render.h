@@ -68,7 +68,7 @@ class Render3
 
         // Takes the camera settings and generates rays
         Ray3 createRay(
-            int x, int y
+            int x, int y, ProjectionType projection
         );
 
         void render(

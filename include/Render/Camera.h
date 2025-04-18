@@ -7,6 +7,11 @@
 #include "Utils/Color.h"
 #include <memory>
 
+enum class ProjectionType {
+    Prospective,
+    Orthographic
+};
+
 class Camera3
 {
 public:
@@ -18,6 +23,9 @@ public:
 
     // Canvas size
     float width, height;
+
+    // Type of projection
+    ProjectionType projection = ProjectionType::Prospective;
 
     // Constructor
     Camera3(Vector3 origin_, Vector3 direction_, float focalLength_, float width_, float height_);
