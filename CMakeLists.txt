@@ -46,3 +46,16 @@ if(WIN32)
         PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SFML_SOURCE_DIR}/extlibs/bin/$<IF:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>,x64,x86>/openal32.dll $<TARGET_FILE_DIR:FatRayTracer>
         VERBATIM)
 endif()
+
+# Path to your assets directory (relative to project root)
+set(ASSETS_SOURCE_DIR ${CMAKE_SOURCE_DIR}/assets)
+set(ASSETS_TARGET_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets)
+
+# Custom target to copy assets
+add_custom_command(
+    TARGET FatRayTracer
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${ASSETS_TARGET_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${ASSETS_SOURCE_DIR} ${ASSETS_TARGET_DIR}
+    COMMENT "Copying asset files to output directory"
+)

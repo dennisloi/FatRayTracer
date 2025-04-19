@@ -20,13 +20,48 @@
 
 #include <fstream>
 #include <iostream>
+#include <filesystem>
+
+// Windows specific
+#ifdef _WIN32
+#include <windows.h>
+std::string getExecutablePath() {
+    char buffer[MAX_PATH];
+    GetModuleFileNameA(NULL, buffer, MAX_PATH);
+    return std::string(buffer);
+}
+#endif
+
+// Linux specific
+#ifdef __linux__
+#include <unistd.h>
+#include <limits.h>
+std::string getExecutablePath() {
+    char buffer[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
+    if (len != -1) {
+        buffer[len] = '\0';
+        return std::string(buffer);
+    }
+    return "";
+}
+#endif
+
+namespace fs = std::filesystem;
+fs::path getExecutableDir() {
+    return fs::path(getExecutablePath()).parent_path();
+}
 
 #define window_width 600
 #define window_height 600
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
 
+
 std::vector<std::shared_ptr<SceneObject>> loadSTL(
-    const std::string &fileName,
+    const fs::path &fileName,
+    Vector3 origin,
+    Vector3 direction,
+    Vector3 scale,
     float roughness = 0.0f,
     float emissivity = 0.0f,
     float transparency = 0.0f,
@@ -34,24 +69,32 @@ std::vector<std::shared_ptr<SceneObject>> loadSTL(
 {
     std::vector<std::shared_ptr<SceneObject>> objects;
 
-    std::ifstream file(fileName, std::ios::binary);
+    // Open the STL file
+    std::ifstream file(fileName.string(), std::ios::binary);
     if (!file.is_open())
     {
-        std::cerr << "Failed to open file!" << std::endl;
+        std::cerr << "Failed to open file: " << fileName << std::endl;
         return objects;
     }
 
+    // Read the header (80 bytes)
     char header[80];
-
     file.read(header, 80);
-    // Print the header
-    // std::cout << "STL Header: " << std::string(header, 80) << std::endl;
+    std::cout << "Header: " << header << std::endl;
 
+    bool isASCII = std::string(header, header + 5) == "solid";
+if (isASCII) {
+    std::cerr << "Error: ASCII STL detected. This loader only supports binary STL." << std::endl;
+    return objects;
+}
+
+    // Read the number of triangles (4 bytes)
     unsigned int numTriangles;
     file.read(reinterpret_cast<char *>(&numTriangles), sizeof(unsigned int));
     std::cout << "Number of triangles: " << numTriangles << std::endl;
 
-    for (int i = 0; i < numTriangles - 1; i++)
+    // Read the triangles
+    for (int i = 0; i < numTriangles; i++)
     {
         float normal_x;
         float normal_y;
@@ -68,38 +111,53 @@ std::vector<std::shared_ptr<SceneObject>> loadSTL(
         char byteCount[2];
 
         file.read(reinterpret_cast<char *>(&normal_x), sizeof(float));
-        file.read(reinterpret_cast<char *>(&normal_y), sizeof(float));
         file.read(reinterpret_cast<char *>(&normal_z), sizeof(float));
+        file.read(reinterpret_cast<char *>(&normal_y), sizeof(float));
         file.read(reinterpret_cast<char *>(&v1_x), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v1_y), sizeof(float));
         file.read(reinterpret_cast<char *>(&v1_z), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v1_y), sizeof(float));
         file.read(reinterpret_cast<char *>(&v2_x), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v2_y), sizeof(float));
         file.read(reinterpret_cast<char *>(&v2_z), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v2_y), sizeof(float));
         file.read(reinterpret_cast<char *>(&v3_x), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v3_y), sizeof(float));
         file.read(reinterpret_cast<char *>(&v3_z), sizeof(float));
+        file.read(reinterpret_cast<char *>(&v3_y), sizeof(float));
         file.read(byteCount, 2);
 
-        // Debug print
+        // Invert the Y axis
+        v1_y = -v1_y;
+        v2_y = -v2_y;
+        v3_y = -v3_y;
+
+        // Flip the normal
+        normal_x = -normal_x;
+        normal_z = -normal_z;
+
+        // // Debug print
+        // std::cout << "Triangle n:" << i  << std::endl;
         // std::cout << "Normal: (" << normal_x << ", " << normal_y << ", " << normal_z << ")" << std::endl;
         // std::cout << "Vertex 1: (" << v1_x << ", " << v1_y << ", " << v1_z << ")" << std::endl;
         // std::cout << "Vertex 2: (" << v2_x << ", " << v2_y << ", " << v2_z << ")" << std::endl;
         // std::cout << "Vertex 3: (" << v3_x << ", " << v3_y << ", " << v3_z << ")" << std::endl;
         // std::cout << "Byte count: " << (unsigned int)byteCount[0] << std::endl;
 
-        float scale = 70.0f;   // Scale factor for the STL model
-        float offsetX = 0.0f;  // X-axis offset
-        float offsetY = 70.0f; // Y-axis offset
-        float offsetZ = 70.0f; // Z-axis offset
+        // Scale the vectors
+        v1_x = v1_x* scale.x + origin.x;
+        v1_y = v1_y * scale.y + origin.y;
+        v1_z = v1_z * scale.z + origin.z;
+        v2_x = v2_x * scale.x + origin.x;
+        v2_y = v2_y * scale.y + origin.y;
+        v2_z = v2_z * scale.z + origin.z;
+        v3_x = v3_x * scale.x + origin.x;
+        v3_y = v3_y * scale.y + origin.y;
+        v3_z = v3_z * scale.z + origin.z;
 
         Triangle3 triangle = Triangle3(
-            Vector3(v1_y * scale + offsetX, v1_x * scale + offsetY, v1_z * scale + offsetZ),
-            Vector3(v2_y * scale + offsetX, v2_x * scale + offsetY, v2_z * scale + offsetZ),
-            Vector3(v3_y * scale + offsetX, v3_x * scale + offsetY, v3_z * scale + offsetZ));
-        // std::cout << "Normal:" << triangle.n.x << ", " << triangle.n.y << ", " << triangle.n.z << std::endl;
-        triangle.n = normalize(Vector3(normal_y, normal_x, normal_z) * -1.0f);
-        // std::cout << "Normal:" << triangle.n.x << ", " << triangle.n.y << ", " << triangle.n.z << std::endl;
+            Vector3(v2_x, v2_y, v2_z),
+            Vector3(v1_x, v1_y, v1_z),
+            Vector3(v3_x, v3_y, v3_z));
+
+        triangle.n = normalize(Vector3(normal_x, normal_y, normal_z));
 
         // Triangle settings
         triangle.color = color,
@@ -120,7 +178,7 @@ int main()
 
     // Select a font for the debug text
     sf::Font font;
-    font.loadFromFile(font_path);
+    font.loadFromFile(getExecutableDir() / "assets" / "fonts" / "Open_Sans" / "OpenSans-VariableFont_wdth,wght.ttf"); 
 
     // FPS Counter text element
     sf::Text fpsCounter;
@@ -291,13 +349,16 @@ int main()
     objects.push_back(std::make_shared<Triangle3>(triangle8));
     objects.push_back(std::make_shared<Triangle3>(triangle9));
 
-    objects.push_back(std::make_shared<Triangle3>(triangle10));
-    objects.push_back(std::make_shared<Triangle3>(triangle11));
+    // objects.push_back(std::make_shared<Triangle3>(triangle10));
+    // objects.push_back(std::make_shared<Triangle3>(triangle11));
 
     // Load from STL
     std::vector<std::shared_ptr<SceneObject>> stlObject;
     stlObject = loadSTL(
-        "../../Suzanne2.stl",
+        getExecutableDir() / "assets" / "meshes" / "Suzanne.stl",
+        Vector3(.0f,.0f,.0f), //origin
+        Vector3(.0f,.0f,.0f), //direction
+        Vector3(70.f,70.f,70.f), //scale
         1.f, // Roughness
         0.f, // Emissivity
         0.f, // Transparency
@@ -341,7 +402,7 @@ int main()
     sf::Sprite sprite(texture);
 
     // Rendering settings
-    int averages = 1;
+    int averages = 10;
     int maxReflections = 5;
     float antialiasing = 0.0001f;
 
