@@ -405,9 +405,10 @@ int main()
     int averages = 10;
     int maxReflections = 5;
     float antialiasing = 0.0001f;
+    float gain = 2.f;
 
     // Create render object
-    Render3 renderer(camera, objects, averages, maxReflections, width, height, antialiasing);
+    Render3 renderer(camera, objects, averages, maxReflections, width, height, antialiasing, gain);
 
     // Create render queue
     int divs = 20;

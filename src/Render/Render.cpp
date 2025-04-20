@@ -16,8 +16,9 @@ Render3::Render3(
     int maxReflections_,
     int resX_,
     int resY_,
-    float antialiasing_)
-    : camera(camera_), objects(objects_), averages(averages_), maxReflections(maxReflections_), resX(resX_), resY(resY_), antialiasing(antialiasing_)
+    float antialiasing_,
+    float gain_)
+    : camera(camera_), objects(objects_), averages(averages_), maxReflections(maxReflections_), resX(resX_), resY(resY_), antialiasing(antialiasing_), gain(gain_)
 {
 }
 
@@ -115,7 +116,7 @@ Color Render3::renderRay(Ray3 ray)
             ray = closestObjectReflection;
             if (objects[closestObjectIndex]->emissivity > 0.0f)
             {
-                Color c = ray.color * objects[closestObjectIndex]->emissivity * gain;
+                Color c = ray.color * (objects[closestObjectIndex]->emissivity * gain);
                 return c;
             }
         }
