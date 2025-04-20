@@ -115,7 +115,7 @@ Color Render3::renderRay(Ray3 ray)
             ray = closestObjectReflection;
             if (objects[closestObjectIndex]->emissivity > 0.0f)
             {
-                Color c = ray.color * objects[closestObjectIndex]->emissivity * 2; // TODO why 2?
+                Color c = ray.color * objects[closestObjectIndex]->emissivity * gain;
                 return c;
             }
         }

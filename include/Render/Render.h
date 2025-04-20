@@ -47,6 +47,7 @@ class Render3
         // Render settings
         int averages;
         int maxReflections;
+        float gain;
 
         // Constructor
         Render3(
@@ -56,7 +57,8 @@ class Render3
             int maxReflections_ = 3,
             int resX_ = 400,
             int resY_ = 400,
-            float antialiasing_ = 0.01f
+            float antialiasing_ = 0.01f,
+            float gain_ = 1.0f
         );
 
         void createRenderQueue(int divs, RenderQueueType type = RenderQueueType::Grid);
