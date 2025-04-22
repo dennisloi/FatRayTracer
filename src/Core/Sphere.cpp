@@ -52,7 +52,7 @@ bool Sphere::Intersect(const Ray3 &ray, Ray3 &reflection) const
     }
 
     // Calculate the normal
-    Vector3 normal = intersection - Origin;
+    Vector3 normal = normalize(intersection - Origin);
 
     // Specular reflection ray
     Vector3 direction = ray.direction - normal * (2 * dot(ray.direction, normal));
