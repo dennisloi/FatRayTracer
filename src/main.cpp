@@ -7,6 +7,7 @@
 #include "Core/Vector.h"
 #include "Core/Ray.h"
 #include "Core/Triangle.h"
+#include "Core/Mesh.h"
 #include "Core/Sphere.h"
 #include "Render/PixelBuffer.h"
 #include "Render/Render.h"
@@ -47,128 +48,13 @@ std::string getExecutablePath() {
 }
 #endif
 
-namespace fs = std::filesystem;
-fs::path getExecutableDir() {
-    return fs::path(getExecutablePath()).parent_path();
+std::filesystem::path getExecutableDir() {
+    return std::filesystem::path(getExecutablePath()).parent_path();
 }
 
 #define window_width 600
 #define window_height 600
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
-
-
-std::vector<std::shared_ptr<SceneObject>> loadSTL(
-    const fs::path &fileName,
-    Vector3 origin,
-    Vector3 direction,
-    Vector3 scale,
-    float roughness = 0.0f,
-    float emissivity = 0.0f,
-    float transparency = 0.0f,
-    Color color = Color())
-{
-    std::vector<std::shared_ptr<SceneObject>> objects;
-
-    // Open the STL file
-    std::ifstream file(fileName.string(), std::ios::binary);
-    if (!file.is_open())
-    {
-        std::cerr << "Failed to open file: " << fileName << std::endl;
-        return objects;
-    }
-
-    // Read the header (80 bytes)
-    char header[80];
-    file.read(header, 80);
-    std::cout << "Header: " << header << std::endl;
-
-    bool isASCII = std::string(header, header + 5) == "solid";
-if (isASCII) {
-    std::cerr << "Error: ASCII STL detected. This loader only supports binary STL." << std::endl;
-    return objects;
-}
-
-    // Read the number of triangles (4 bytes)
-    unsigned int numTriangles;
-    file.read(reinterpret_cast<char *>(&numTriangles), sizeof(unsigned int));
-    std::cout << "Number of triangles: " << numTriangles << std::endl;
-
-    // Read the triangles
-    for (int i = 0; i < numTriangles; i++)
-    {
-        float normal_x;
-        float normal_y;
-        float normal_z;
-        float v1_x;
-        float v1_y;
-        float v1_z;
-        float v2_x;
-        float v2_y;
-        float v2_z;
-        float v3_x;
-        float v3_y;
-        float v3_z;
-        char byteCount[2];
-
-        file.read(reinterpret_cast<char *>(&normal_x), sizeof(float));
-        file.read(reinterpret_cast<char *>(&normal_z), sizeof(float));
-        file.read(reinterpret_cast<char *>(&normal_y), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v1_x), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v1_z), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v1_y), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v2_x), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v2_z), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v2_y), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v3_x), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v3_z), sizeof(float));
-        file.read(reinterpret_cast<char *>(&v3_y), sizeof(float));
-        file.read(byteCount, 2);
-
-        // Invert the Y axis
-        v1_y = -v1_y;
-        v2_y = -v2_y;
-        v3_y = -v3_y;
-
-        // Flip the normal
-        normal_x = -normal_x;
-        normal_z = -normal_z;
-
-        // // Debug print
-        // std::cout << "Triangle n:" << i  << std::endl;
-        // std::cout << "Normal: (" << normal_x << ", " << normal_y << ", " << normal_z << ")" << std::endl;
-        // std::cout << "Vertex 1: (" << v1_x << ", " << v1_y << ", " << v1_z << ")" << std::endl;
-        // std::cout << "Vertex 2: (" << v2_x << ", " << v2_y << ", " << v2_z << ")" << std::endl;
-        // std::cout << "Vertex 3: (" << v3_x << ", " << v3_y << ", " << v3_z << ")" << std::endl;
-        // std::cout << "Byte count: " << (unsigned int)byteCount[0] << std::endl;
-
-        // Scale the vectors
-        v1_x = v1_x* scale.x + origin.x;
-        v1_y = v1_y * scale.y + origin.y;
-        v1_z = v1_z * scale.z + origin.z;
-        v2_x = v2_x * scale.x + origin.x;
-        v2_y = v2_y * scale.y + origin.y;
-        v2_z = v2_z * scale.z + origin.z;
-        v3_x = v3_x * scale.x + origin.x;
-        v3_y = v3_y * scale.y + origin.y;
-        v3_z = v3_z * scale.z + origin.z;
-
-        Triangle3 triangle = Triangle3(
-            Vector3(v2_x, v2_y, v2_z),
-            Vector3(v1_x, v1_y, v1_z),
-            Vector3(v3_x, v3_y, v3_z));
-
-        triangle.n = normalize(Vector3(normal_x, normal_y, normal_z));
-
-        // Triangle settings
-        triangle.color = color,
-        triangle.roughness = roughness;
-        triangle.emissivity = emissivity;
-        triangle.transparency = transparency;
-
-        objects.push_back(std::make_shared<Triangle3>(triangle));
-    }
-    return objects;
-}
 
 int main()
 {
@@ -334,6 +220,7 @@ int main()
     // objects.push_back(std::make_shared<Sphere>(eye_sx));
     // objects.push_back(std::make_shared<Sphere>(eye_dx));
 
+    // objects.push_back(std::make_shared<Sphere>(sphere0));
     objects.push_back(std::make_shared<Triangle3>(light0));
     objects.push_back(std::make_shared<Triangle3>(light1));
     objects.push_back(std::make_shared<Triangle3>(light2));
@@ -353,22 +240,46 @@ int main()
     // objects.push_back(std::make_shared<Triangle3>(triangle11));
 
     // Load from STL
-    std::vector<std::shared_ptr<SceneObject>> stlObject;
-    stlObject = loadSTL(
+    // std::vector<std::shared_ptr<SceneObject>> stlObject;
+    // stlObject = loadSTL(
+    //     getExecutableDir() / "assets" / "meshes" / "Suzanne.stl",
+    //     Vector3(.0f,.0f,.0f), //origin
+    //     Vector3(.0f,.0f,.0f), //direction
+    //     Vector3(70.f,70.f,70.f), //scale
+    //     1.f, // Roughness
+    //     0.f, // Emissivity
+    //     0.f, // Transparency
+    //     Color(0.5f, 0.5f, 0.5f));
+
+    // // Add the STL object to the objects vector
+    // for (size_t i = 0; i < stlObject.size(); i++)
+    // {
+    //     objects.push_back(stlObject[i]);
+    // }
+
+    Mesh3 Suzanne;
+    Suzanne.loadSTL(
         getExecutableDir() / "assets" / "meshes" / "Suzanne.stl",
-        Vector3(.0f,.0f,.0f), //origin
-        Vector3(.0f,.0f,.0f), //direction
-        Vector3(70.f,70.f,70.f), //scale
-        1.f, // Roughness
+        Vector3(.0f, .0f, .0f), // origin
+        Vector3(.0f, .0f, .0f), // direction
+        Vector3(70.f, 70.f, 70.f), // scale
+        0.6f, // Roughness
         0.f, // Emissivity
         0.f, // Transparency
         Color(0.5f, 0.5f, 0.5f));
 
-    // Add the STL object to the objects vector
-    for (size_t i = 0; i < stlObject.size(); i++)
+    for (size_t i = 0; i < Suzanne.triangles.size(); i++)
     {
-        objects.push_back(stlObject[i]);
+        objects.push_back(Suzanne.triangles[i]);
     }
+
+    // std::vector<std::shared_ptr<SceneObject>> objObject;
+    // objObject = loadOBJ();
+
+    // for (size_t i = 0; i < objObject.size(); i++)
+    // {
+    //     objects.push_back(objObject[i]);
+    // }
 
     // Create a camera
     Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -400.0f);

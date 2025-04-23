@@ -20,11 +20,15 @@ void Ray3::setDirection(const Vector3& direction_) {
     direction = normalize(direction_);
 }
 
+// TODO move this to the scene
 Color getSkybox(const Ray3& ray){
+
+    Color c1 = Color(0.12f, 0.06f, 0.06f); // "Bottom" color
+    Color c0 = Color(0.0f, 0.2f, 1.0f); // "Top" color
     
-    // If the y direction is negative, return the sky
-    if(ray.direction.y < 0){
-        return Color(0.f, 0.02f, 0.15f);
-    }
-    return Color(0.15f, 0.02f, 0);
+    float r = ((c1.r - c0.r)/2) * ray.direction.y + ((c1.r + c0.r)/2);
+    float g = ((c1.g - c0.g)/2) * ray.direction.y + ((c1.g + c0.g)/2);
+    float b = ((c1.b - c0.b)/2) * ray.direction.y + ((c1.b + c0.b)/2);
+    
+    return Color(r, g, b);
 }
