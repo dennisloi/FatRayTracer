@@ -131,78 +131,84 @@ bool Mesh3::loadOBJ(
     Color color)
 {
 
-    // float scale = 50.f;
+    std::vector<Vector3> vertexes;
+    std::vector<Vector3> normals;
 
-    // std::vector<Vector3> vertexes;
-    // std::vector<Vector3> normals;
-    // std::vector<std::shared_ptr<SceneObject>> objects;
+    // Open the OBJ file
+    std::ifstream file(fileName.string(), std::ios::binary);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open file: " << fileName << std::endl;
+        return false;
+    }
 
-    // std::filesystem::path fileName = getExecutableDir() / "assets" / "meshes" / "Suzanne.obj";
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss;
+        iss.str(line);
+        std::string prefix;
+        iss >> prefix;
 
-    // // Open the OBJ file
-    // std::ifstream file(fileName.string(), std::ios::binary);
-    // if (!file.is_open())
-    // {
-    //     std::cerr << "Failed to open file: " << fileName << std::endl;
-    //     return false;
-    // }
+        if (prefix == "v") {
+            Vector3 v;
+            iss >> v.x >> v.z >> v.y;
+            
+            // Scale the vertexes
+            v.x *= scale.x;
+            v.y *= scale.y;
+            v.z *= scale.z;
 
-    // std::string line;
-    // while (std::getline(file, line)) {
-    //     std::istringstream iss;
-    //     iss.str(line);
-    //     std::string prefix;
-    //     iss >> prefix;
-
-    //     if (prefix == "v") {
-    //         Vector3 v;
-    //         iss >> v.x >> v.z >> v.y;
-    //         v = v * scale;
-    //         vertexes.push_back(v);
-    //     }
+            vertexes.push_back(v);
+        }
         
-    //     else if(prefix == "vn"){
-    //         Vector3 v;
-    //         iss >> v.x >> v.z >> v.y;
-    //         normals.push_back(v);
-    //     }
+        else if(prefix == "vn"){
+            Vector3 v;
+            iss >> v.x >> v.z >> v.y;
+            normals.push_back(v);
+        }
 
-    //     else if(prefix == "f"){
+        else if(prefix == "f"){
 
-    //         std::vector<Vector3> faceVertexes;
-    //         Vector3 normal;
+            std::vector<Vector3> faceVertexes;
+            Vector3 normal;
 
-    //         std::string token;
+            std::string token;
 
-    //         while(iss >> token){
-    //             size_t first = token.find('/');
-    //             size_t second = token.find('/', first + 1);
+            while(iss >> token){
+                size_t first = token.find('/');
+                size_t second = token.find('/', first + 1);
 
-    //             int firstIndex = std::stoi(token.substr(0, first)) - 1;
-    //             int secondIndex = std::stoi(token.substr(second + 1)) - 1;
+                int firstIndex = std::stoi(token.substr(0, first)) - 1;
+                int secondIndex = std::stoi(token.substr(second + 1)) - 1;
 
-    //             faceVertexes.push_back(vertexes[firstIndex]);
-    //             normal = normals[secondIndex];
-    //         }
-    //         Vector3 v1 = faceVertexes[0];
-    //         Vector3 v2 = faceVertexes[1];
-    //         Vector3 v3 = faceVertexes[2];
+                faceVertexes.push_back(vertexes[firstIndex]);
+                normal = normals[secondIndex];
+            }
+            Vector3 v1 = faceVertexes[0];
+            Vector3 v2 = faceVertexes[1];
+            Vector3 v3 = faceVertexes[2];
 
-    //         // Flip Y axis
-    //         v1.y = -v1.y;
-    //         v2.y = -v2.y;
-    //         v3.y = -v3.y;
+            // Flip Y axis
+            v1.y = -v1.y;
+            v2.y = -v2.y;
+            v3.y = -v3.y;
 
-    //         // normal.x = -normal.x;
-    //         normal.y = -normal.y;
-    //         // normal.z = -normal.z;
+            normal.x = -normal.x;
+            // normal.y = -normal.y;
+            normal.z = -normal.z;
 
-    //         Triangle3 face = Triangle3(v1, v2, v3);
-    //         face.n = normalize(normal);
-    //         face.color = Color(0.5f, 0.5f, 0.5f);
-    //         objects.push_back(std::make_shared<Triangle3>(face));
-    //     }
-    // }
+            Triangle3 triangle = Triangle3(v2, v1, v3);
+            triangle.n = normalize(normal);
+            
+            // Triangle settings
+            triangle.color = color,
+            triangle.roughness = roughness;
+            triangle.emissivity = emissivity;
+            triangle.transparency = transparency;
+
+            triangles.push_back(std::make_shared<Triangle3>(triangle));
+        }
+    }
 
     return true;
 };
