@@ -29,12 +29,14 @@ file(GLOB UTILS_HEADERS include/Utils/*.h)
 # Automatically find all source files in src/Utils
 file(GLOB UTILS_SOURCES src/Utils/*.cpp)
 
-
 # Add main.cpp and the core sources to the executable
 add_executable(FatRayTracer src/main.cpp ${CORE_SOURCES} ${RENDER_SOURCES} ${UTILS_SOURCES})
 
 # Specify the include directories
-target_include_directories(FatRayTracer PRIVATE include)
+target_include_directories(FatRayTracer PRIVATE 
+    include 
+    ${CMAKE_SOURCE_DIR}/external/stb
+)
 
 target_link_libraries(FatRayTracer PRIVATE sfml-graphics)
 target_compile_features(FatRayTracer PRIVATE cxx_std_17)

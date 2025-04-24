@@ -116,6 +116,9 @@ bool Mesh3::loadSTL(
         triangle.transparency = transparency;
 
         triangles.push_back(std::make_shared<Triangle3>(triangle));
+
+        hasTexture = false;
+        colorMesh = color; 
     }
     return true;
 };
@@ -132,6 +135,7 @@ bool Mesh3::loadOBJ(
 {
 
     std::vector<Vector3> vertexes;
+    std::vector<Vector2> textures;
     std::vector<Vector3> normals;
 
     // Open the OBJ file
@@ -143,6 +147,9 @@ bool Mesh3::loadOBJ(
     }
 
     std::string line;
+    Vector3 v;
+    Vector2 t;
+    float hasTexture_ = false;
     while (std::getline(file, line)) {
         std::istringstream iss;
         iss.str(line);
@@ -150,7 +157,6 @@ bool Mesh3::loadOBJ(
         iss >> prefix;
 
         if (prefix == "v") {
-            Vector3 v;
             iss >> v.x >> v.z >> v.y;
             
             // Scale the vertexes
@@ -162,14 +168,20 @@ bool Mesh3::loadOBJ(
         }
         
         else if(prefix == "vn"){
-            Vector3 v;
             iss >> v.x >> v.z >> v.y;
             normals.push_back(v);
+        }
+
+        else if(prefix == "vt"){
+            iss >> t.x >> t.y;
+            textures.push_back(t);
+            hasTexture_ = true;
         }
 
         else if(prefix == "f"){
 
             std::vector<Vector3> faceVertexes;
+            std::vector<Vector2> faceTextures;
             Vector3 normal;
 
             std::string token;
@@ -179,14 +191,33 @@ bool Mesh3::loadOBJ(
                 size_t second = token.find('/', first + 1);
 
                 int firstIndex = std::stoi(token.substr(0, first)) - 1;
-                int secondIndex = std::stoi(token.substr(second + 1)) - 1;
+                int secondIndex = std::stoi(token.substr(first + 1, second)) - 1;
+                int thirdIndex = std::stoi(token.substr(second + 1)) - 1;
 
+                if(!hasTexture_){
                 faceVertexes.push_back(vertexes[firstIndex]);
                 normal = normals[secondIndex];
+                }
+                else{
+                    faceVertexes.push_back(vertexes[firstIndex]);
+                    faceTextures.push_back(textures[secondIndex]);
+                    normal = normals[thirdIndex];
+                }
+                
             }
+
+            if (faceVertexes.size() > 3){
+                std::cerr << "Not triangulated mesh!" << std::endl;
+                return false;
+            }
+
             Vector3 v1 = faceVertexes[0];
             Vector3 v2 = faceVertexes[1];
             Vector3 v3 = faceVertexes[2];
+
+            Vector2 t0 = faceTextures[0];
+            Vector2 t1 = faceTextures[1];
+            Vector2 t2 = faceTextures[2];
 
             // Flip Y axis
             v1.y = -v1.y;
@@ -197,8 +228,20 @@ bool Mesh3::loadOBJ(
             // normal.y = -normal.y;
             normal.z = -normal.z;
 
-            Triangle3 triangle = Triangle3(v2, v1, v3);
+            t0.y = 1.f - t0.y;
+            t1.y = 1.f - t1.y;
+            t2.y = 1.f - t2.y;
+
+
+            Triangle3 triangle = Triangle3(v1, v2, v3);
             triangle.n = normalize(normal);
+
+            // Set texture vertexes if present
+            if (hasTexture_){
+                triangle.t0 = t0;
+                triangle.t1 = t1;
+                triangle.t2 = t2;
+            }
             
             // Triangle settings
             triangle.color = color,
@@ -210,5 +253,36 @@ bool Mesh3::loadOBJ(
         }
     }
 
+    hasTexture = hasTexture_;
+    colorMesh = color; 
+
     return true;
 };
+
+bool Mesh3::loadTexture(
+    const std::filesystem::path &fileName
+){
+    if (!texture.loadFromFile(fileName.string())) {
+        std::cerr << "Error loading image!" << std::endl;
+        return false;  // Exit with an error code
+    }
+    return true;
+}
+
+Color Mesh3::getTexture(
+    int x,
+    int y
+){
+    // Check bounds
+    if (x<0) x = 0;
+    if (x>texture.getSize().x - 1) x = texture.getSize().x - 1;
+    if (y<0) y = 0;
+    if (y>texture.getSize().y - 1) y = texture.getSize().y - 1;
+
+    // Get the color
+    sf::Color color = texture.getPixel(x, y);
+
+    // Transform the color from SFML
+    return Color((float)color.r/255, (float)color.g/255, (float)color.b/255);
+
+}

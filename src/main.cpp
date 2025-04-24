@@ -52,8 +52,8 @@ std::filesystem::path getExecutableDir() {
     return std::filesystem::path(getExecutablePath()).parent_path();
 }
 
-#define window_width 600
-#define window_height 600
+#define window_width 500
+#define window_height 500
 #define font_path "../../assets/fonts/Open_Sans/OpenSans-VariableFont_wdth,wght.ttf"
 
 int main()
@@ -93,7 +93,7 @@ int main()
     pixels.resize(width * height);
 
     // Create a vector to store pointers to SceneObject (this will become a class)
-    std::vector<std::shared_ptr<SceneObject>> objects;
+    std::vector<std::shared_ptr<Mesh3>> objects;
 
     // Create a scene (temp)
 
@@ -221,20 +221,20 @@ int main()
     // objects.push_back(std::make_shared<Sphere>(eye_dx));
 
     // objects.push_back(std::make_shared<Sphere>(sphere0));
-    objects.push_back(std::make_shared<Triangle3>(light0));
-    objects.push_back(std::make_shared<Triangle3>(light1));
-    objects.push_back(std::make_shared<Triangle3>(light2));
-    objects.push_back(std::make_shared<Triangle3>(light3));
-    objects.push_back(std::make_shared<Triangle3>(triangle0));
-    objects.push_back(std::make_shared<Triangle3>(triangle1));
-    objects.push_back(std::make_shared<Triangle3>(triangle2));
-    objects.push_back(std::make_shared<Triangle3>(triangle3));
-    objects.push_back(std::make_shared<Triangle3>(triangle4));
-    objects.push_back(std::make_shared<Triangle3>(triangle5));
-    objects.push_back(std::make_shared<Triangle3>(triangle6));
-    objects.push_back(std::make_shared<Triangle3>(triangle7));
-    objects.push_back(std::make_shared<Triangle3>(triangle8));
-    objects.push_back(std::make_shared<Triangle3>(triangle9));
+    // objects.push_back(std::make_shared<Triangle3>(light0));
+    // objects.push_back(std::make_shared<Triangle3>(light1));
+    // objects.push_back(std::make_shared<Triangle3>(light2));
+    // objects.push_back(std::make_shared<Triangle3>(light3));
+    // objects.push_back(std::make_shared<Triangle3>(triangle0));
+    // objects.push_back(std::make_shared<Triangle3>(triangle1));
+    // objects.push_back(std::make_shared<Triangle3>(triangle2));
+    // objects.push_back(std::make_shared<Triangle3>(triangle3));
+    // objects.push_back(std::make_shared<Triangle3>(triangle4));
+    // objects.push_back(std::make_shared<Triangle3>(triangle5));
+    // objects.push_back(std::make_shared<Triangle3>(triangle6));
+    // objects.push_back(std::make_shared<Triangle3>(triangle7));
+    // objects.push_back(std::make_shared<Triangle3>(triangle8));
+    // objects.push_back(std::make_shared<Triangle3>(triangle9));
 
     // objects.push_back(std::make_shared<Triangle3>(triangle10));
     // objects.push_back(std::make_shared<Triangle3>(triangle11));
@@ -258,27 +258,33 @@ int main()
     // }
 
     Mesh3 Suzanne;
-    Suzanne.loadSTL(
-        getExecutableDir() / "assets" / "meshes" / "Suzanne.stl",
+
+    // Suzanne.loadSTL(
+    //     getExecutableDir() / "assets" / "meshes" / "Suzanne.stl",
+    //     Vector3(.0f, .0f, .0f), // origin
+    //     Vector3(.0f, .0f, .0f), // direction
+    //     Vector3(70.f, 70.f, 70.f), // scale
+    //     0.6f, // Roughness
+    //     0.f, // Emissivity
+    //     0.f, // Transparency
+    //     Color(0.5f, 0.5f, 0.5f));
+
+    Suzanne.loadOBJ(
+        getExecutableDir() / "assets" / "meshes" / "cube2.obj",
         Vector3(.0f, .0f, .0f), // origin
         Vector3(.0f, .0f, .0f), // direction
-        Vector3(70.f, 70.f, 70.f), // scale
-        0.6f, // Roughness
-        0.f, // Emissivity
+        Vector3(50.f, 50.f, 50.f), // scale
+        1.f, // Roughness
+        1.f, // Emissivity
         0.f, // Transparency
-        Color(0.5f, 0.5f, 0.5f));
+        Color(1.f, 0.5f, 0.5f));
+    Suzanne.loadTexture(
+        getExecutableDir() / "assets" / "meshes" / "cube2.png");
+    // Suzanne.hasTexture = false;
 
-    for (size_t i = 0; i < Suzanne.triangles.size(); i++)
-    {
-        objects.push_back(Suzanne.triangles[i]);
-    }
-
-    // std::vector<std::shared_ptr<SceneObject>> objObject;
-    // objObject = loadOBJ();
-
-    // for (size_t i = 0; i < objObject.size(); i++)
+    // for (size_t i = 0; i < Suzanne.triangles.size(); i++)
     // {
-    //     objects.push_back(objObject[i]);
+        objects.push_back(std::make_shared<Mesh3>(Suzanne));
     // }
 
     // Create a camera
@@ -316,7 +322,7 @@ int main()
     int averages = 10;
     int maxReflections = 5;
     float antialiasing = 0.0001f;
-    float gain = 2.f;
+    float gain = 1.f;
 
     // Create render object
     Render3 renderer(camera, objects, averages, maxReflections, width, height, antialiasing, gain);

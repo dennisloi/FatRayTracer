@@ -117,3 +117,45 @@ Vector3 getRandomDirectionInHemisphere(const Vector3& normal) {
 Vector3 lerp(const Vector3& start, const Vector3& end, float t) {
     return start + (end - start) * t;
 }
+
+// Default constructor that initializes a vector with all zeroes
+Vector2::Vector2()
+    : x(0.0f), y(0.0f) {}
+
+// Parameterized constructor
+Vector2::Vector2(float x_, float y_)
+    : x(x_), y(y_) {}
+
+// Vector addition
+Vector2 Vector2::operator+(const Vector2 &other) const
+{
+    return Vector2(x + other.x, y + other.y);
+}
+
+// Vector subtraction
+Vector2 Vector2::operator-(const Vector2 &other) const
+{
+    return Vector2(x - other.x, y - other.y);
+}
+
+// Division
+Vector2 Vector2::operator/(float scalar) const
+{
+    if (scalar == 0.0f)
+    {
+        throw std::invalid_argument("Division by zero in Vector2.");
+    }
+    return Vector2(x / scalar, y / scalar);
+}
+
+// Multiplication
+Vector2 Vector2::operator*(float coefficient) const
+{
+    return Vector2(x * coefficient, y * coefficient);
+}
+
+// Length calculation
+float Vector2::getLength() const
+{
+    return std::sqrt(x * x + y * y);
+}

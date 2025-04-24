@@ -22,7 +22,7 @@ bool Triangle3::Intersect(const Ray3& ray, Ray3& reflection) const
     float normal_dot_dir = dot(n, ray.direction);
 
     // Check if the line is parallel to the plane
-    if (normal_dot_dir < 1e-6) {
+    if (std::abs(normal_dot_dir) < 1e-6) {
         return false;
     }
 
@@ -42,18 +42,39 @@ bool Triangle3::Intersect(const Ray3& ray, Ray3& reflection) const
     // Calculate the intersection point
     Vector3 intersection = ray.origin + ray.direction * t;
     
-    //Edges tests to check if the intersection point is inside the triangle
+    // //Edges tests to check if the intersection point is inside the triangle
+    // Vector3 edge0 = v1 - v0;
+    // Vector3 c0 = intersection - v0;
+    // if (dot(n, cross(edge0, c0)) < 0) return false;
+
+    // Vector3 edge1 = v2 - v1;
+    // Vector3 c1 = intersection - v1;
+    // if (dot(n, cross(edge1, c1)) < 0) return false;
+    
+    // Vector3 edge2 = v0 - v2;
+    // Vector3 c2 = intersection - v2;
+    // if (dot(n, cross(edge2, c2)) < 0) return false;
+
+    // Alternate version which is triangle winding agnostic
     Vector3 edge0 = v1 - v0;
     Vector3 c0 = intersection - v0;
-    if (dot(n, cross(edge0, c0)) < 0) return false;
+    float test0 = dot(n, cross(edge0, c0));
 
     Vector3 edge1 = v2 - v1;
     Vector3 c1 = intersection - v1;
-    if (dot(n, cross(edge1, c1)) < 0) return false;
-    
+    float test1 = dot(n, cross(edge1, c1));
+
     Vector3 edge2 = v0 - v2;
     Vector3 c2 = intersection - v2;
-    if (dot(n, cross(edge2, c2)) < 0) return false;
+    float test2 = dot(n, cross(edge2, c2));
+
+    // Check if all are same sign (>= 0 or <= 0)
+    if ((test0 >= 0 && test1 >= 0 && test2 >= 0) ||
+        (test0 <= 0 && test1 <= 0 && test2 <= 0)) {
+        // intersection is inside triangle
+    } else {
+        return false;
+    }
 
     // If all the checks fails, the ray intersects the triangle
 
@@ -89,7 +110,7 @@ bool Triangle3::Intersect(const Ray3& ray, Ray3& reflection) const
     reflection.origin = intersection + direction * 1e-6;
     reflection.direction = direction;
 
-    reflection.color = ray.color * color;
+    // reflection.color = ray.color * color;
 
     return true;
 }

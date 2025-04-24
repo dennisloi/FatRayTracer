@@ -52,4 +52,33 @@ Vector3 getRandomDirectionInHemisphere(const Vector3& normal);
 
 Vector3 lerp(const Vector3& start, const Vector3& end, float t);
 
+class Vector2
+{
+public:
+
+    float x, y;
+
+    // Default constructor
+    Vector2();
+
+    // Declaration of the constructor
+    Vector2(float x_, float y_);
+
+    // Overload for the sum operator
+    Vector2 operator+(const Vector2& other) const;
+
+    // Overload for the subtraction operator
+    Vector2 operator-(const Vector2& other) const;
+
+    // Overload for the division operator
+    Vector2 operator/(float scalar) const;
+
+    // Overload for the multiplication operator
+    Vector2 operator*(float coefficient) const;
+
+    // Method to calculate the lenght
+    float getLength() const;
+
+};
+
 #endif // VECTOR_H

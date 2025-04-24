@@ -13,6 +13,9 @@ public:
     // Vertexes
     Vector3 v0, v1, v2;
 
+    // Texture UVs
+    Vector2 t0, t1, t2;
+
     //Normal vector
     Vector3 n;
 

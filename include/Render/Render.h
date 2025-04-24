@@ -3,7 +3,7 @@
 
 #include "Utils/Color.h"
 #include "Core/Ray.h"
-#include "Core/SceneObject.h"
+#include "Core/Mesh.h"
 #include "Render/Camera.h"
 
 #include <memory>
@@ -42,7 +42,7 @@ class Render3
 
         // Scene
         Camera3 camera;
-        const std::vector<std::shared_ptr<SceneObject>> &objects;
+        const std::vector<std::shared_ptr<Mesh3>> &objects;
 
         // Render settings
         int averages;
@@ -52,7 +52,7 @@ class Render3
         // Constructor
         Render3(
             Camera3 camera_,
-            const std::vector<std::shared_ptr<SceneObject>> &objects_,
+            const std::vector<std::shared_ptr<Mesh3>> &objects_,
             int averages_ = 5,
             int maxReflections_ = 3,
             int resX_ = 400,
