@@ -243,6 +243,12 @@ bool Mesh3::loadOBJ(
                 Vector2 t1 = faceTextures[1];
                 Vector2 t2 = faceTextures[2];
 
+                // Invert the Y as the origin is stored on the top-left in the texture
+                t0.y = 1.f - t0.y;
+                t1.y = 1.f - t1.y;
+                t2.y = 1.f - t2.y;
+
+
                 triangle.t0 = t0;
                 triangle.t1 = t1;
                 triangle.t2 = t2;
@@ -372,3 +378,167 @@ void Mesh3::Shading(
     }
 
 }
+
+std::vector<Mesh3> loadOBJ(
+    const std::filesystem::path &fileName,
+    Vector3 origin,
+    Vector3 direction,
+    Vector3 scale,
+    float roughness,
+    float emissivity,
+    float transparency,
+    Color color)
+{
+    std::vector<Mesh3> meshes;
+
+    std::vector<Vector3> vertexes;
+    std::vector<Vector2> textures;
+    std::vector<Vector3> normals;
+
+    // Open the OBJ file
+    std::ifstream file(fileName.string(), std::ios::binary);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open file: " << fileName << std::endl;
+        return meshes;
+    }
+
+    std::string line;
+    Mesh3 mesh;
+    mesh.material->baseColor = color;
+    mesh.material->roughness = roughness;
+    mesh.material->emissivity = emissivity;
+    Vector3 v;
+    Vector2 t;
+    float hasTexture_ = false;
+
+    // Ignore everything before the first object
+    while (std::getline(file, line)){
+        std::istringstream iss;
+        iss.str(line);
+        std::string prefix;
+        iss >> prefix;
+        if (prefix == "o")
+        {
+            break;
+        }
+    }
+
+    while (std::getline(file, line))
+    {
+        std::istringstream iss;
+        iss.str(line);
+        std::string prefix;
+        iss >> prefix;
+
+        if (prefix == "v")
+        {
+            iss >> v.x >> v.y >> v.z;
+
+            // Scale the vertexes
+            v.x *= scale.x;
+            v.y *= scale.y;
+            v.z *= scale.z;
+
+            vertexes.push_back(v);
+        }
+
+        else if (prefix == "vn")
+        {
+            iss >> v.x >> v.y >> v.z;
+            normals.push_back(v);
+        }
+
+        else if (prefix == "vt")
+        {
+            iss >> t.x >> t.y;
+            textures.push_back(t);
+            hasTexture_ = true;
+        }
+
+        else if (prefix == "f")
+        {
+
+            std::vector<Vector3> faceVertexes;
+            std::vector<Vector2> faceTextures;
+            Vector3 normal;
+
+            std::string token;
+
+            while (iss >> token)
+            {
+                size_t first = token.find('/');
+                size_t second = token.find('/', first + 1);
+
+                int firstIndex = std::stoi(token.substr(0, first)) - 1;
+                int thirdIndex = std::stoi(token.substr(second + 1)) - 1;
+
+                if (!hasTexture_)
+                {
+                    faceVertexes.push_back(vertexes[firstIndex]);
+                    normal = normals[thirdIndex];
+                }
+                else
+                {
+                    int secondIndex = std::stoi(token.substr(first + 1, second)) - 1;
+                    faceVertexes.push_back(vertexes[firstIndex]);
+                    faceTextures.push_back(textures[secondIndex]);
+                    normal = normals[thirdIndex];
+                }
+            }
+
+            if (faceVertexes.size() > 3)
+            {
+                std::cerr << "Not triangulated mesh!" << std::endl;
+                return meshes;
+            }
+
+            Vector3 v1 = faceVertexes[0];
+            Vector3 v2 = faceVertexes[1];
+            Vector3 v3 = faceVertexes[2];
+
+            // Move the vertex to the origin
+            v1 = v1 + origin;
+            v2 = v2 + origin;
+            v3 = v3 + origin;
+
+            Triangle3 triangle = Triangle3(v1, v2, v3);
+            triangle.n = normalize(normal);
+
+            // Set texture vertexes if present
+            if (hasTexture_)
+            {
+                Vector2 t0 = faceTextures[0];
+                Vector2 t1 = faceTextures[1];
+                Vector2 t2 = faceTextures[2];
+
+                // Invert the Y as the origin is stored on the top-left in the texture
+                t0.y = 1.f - t0.y;
+                t1.y = 1.f - t1.y;
+                t2.y = 1.f - t2.y;
+
+
+                triangle.t0 = t0;
+                triangle.t1 = t1;
+                triangle.t2 = t2;
+            }
+
+            mesh.triangles.push_back(std::make_shared<Triangle3>(triangle));
+        }
+
+        else if (prefix == "o")
+        {
+            // New object
+            meshes.push_back(mesh);
+            hasTexture_ = false;
+            mesh = Mesh3();
+            mesh.material->baseColor = color;
+            mesh.material->roughness = roughness;
+            mesh.material->emissivity = emissivity;
+        }
+    }
+
+    meshes.push_back(mesh);
+
+    return meshes;
+};

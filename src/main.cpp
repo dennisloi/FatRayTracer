@@ -95,10 +95,10 @@ int main()
     // Create a vector to store pointers to SceneObject (this will become a class)
     std::vector<std::shared_ptr<SceneObject>> objects;
 
-    std::shared_ptr<Mesh3> Suzanne = std::make_shared<Mesh3>();
-
-    Suzanne->loadOBJ(
-        getExecutableDir() / "assets" / "meshes" / "cube.obj",
+    // Load the scene
+    std::shared_ptr<Mesh3> Scene = std::make_shared<Mesh3>();
+    Scene->loadOBJ(
+        getExecutableDir() / "assets" / "meshes" / "scene.obj",
         Vector3(.0f, .0f, .0f), // origin
         Vector3(.0f, .0f, .0f), // direction
         Vector3(50.f, 50.f, 50.f), // scale
@@ -106,26 +106,28 @@ int main()
         0.f, // Emissivity
         0.f, // Transparency
         Color(1.f, 0.5f, 0.5f));
-    Suzanne->loadTexture(
-        getExecutableDir() / "assets" / "meshes" / "cube2.png");
-    objects.push_back(Suzanne);
+    Scene->loadTexture(
+        getExecutableDir() / "assets" / "meshes" / "texture.png");
+    objects.push_back(Scene);
 
-    std::shared_ptr<Mesh3> Light = std::make_shared<Mesh3>();
-    Light->loadOBJ(
-        getExecutableDir() / "assets" / "meshes" / "face.obj",
-        Vector3(-80.0f, 100.0f, 0.0f), // origin
+    // Load the lights
+    std::shared_ptr<Mesh3> Lights = std::make_shared<Mesh3>();
+    Lights->loadOBJ(
+        getExecutableDir() / "assets" / "meshes" / "light.obj",
+        Vector3(.0f, .0f, .0f), // origin
         Vector3(.0f, .0f, .0f), // direction
-        Vector3(100.f, 100.f, 100.f), // scale
+        Vector3(50.f, 50.f, 50.f), // scale
         1.f, // Roughness
         1.f, // Emissivity
         0.f, // Transparency
         Color(1.f, 0.5f, 0.5f));
-    
-    objects.push_back(Light);
+    // Lights->loadTexture(
+    //     getExecutableDir() / "assets" / "meshes" / "texture.png");
+    objects.push_back(Lights);
 
     // Create a camera
-    Vector3 cameraOrigin = Vector3(-200.f, -400.0f, 200.0f);
-    Vector3 cameraDirection = normalize(Vector3(.5f, 1.0f, -.5f));
+    Vector3 cameraOrigin = Vector3(0.f, -200.0f, 0.0f);
+    Vector3 cameraDirection = normalize(Vector3(.0f, 1.0f, .0f));
     Vector3 cameraUp = Vector3(.0f, 0.f, 1.f);
     float aspectRatio = static_cast<float>(width) / height;
 
@@ -156,7 +158,7 @@ int main()
     sf::Sprite sprite(texture);
 
     // Rendering settings
-    int averages = 20;
+    int averages = 10;
     int maxReflections = 10;
     float antialiasing = 0.0001f;
     float gain = 1.f;
@@ -217,8 +219,8 @@ int main()
         if (rendering)
         {
             // Update the rendering threads
-            rendering = renderer.renderLoop(pixelBuffer, 1);
-            // rendering = renderer.renderLoop(pixelBuffer, numThreads * 2);
+            // rendering = renderer.renderLoop(pixelBuffer, 1);
+            rendering = renderer.renderLoop(pixelBuffer, numThreads * 2);
             if (!rendering)
             {
                 renderFinished = true;

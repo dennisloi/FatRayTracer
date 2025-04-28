@@ -22,6 +22,13 @@ bool Triangle3::Intersect(const Ray3 &ray, hitInfo &hitInfo)
 {
     float normal_dot_dir = dot(n, ray.direction);
 
+    // Backface culling: ignore if normal faces away from ray
+    // Otherwise the reflection calculation are fucked-up
+    if (normal_dot_dir > 0)
+    {
+        return false;
+    }
+
     // Check if the line is parallel to the plane
     if (std::abs(normal_dot_dir) < 1e-6)
     {

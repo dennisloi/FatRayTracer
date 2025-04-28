@@ -130,6 +130,7 @@ Color Render3::renderRay(Ray3 ray)
 
     if (!hit)
     {
+        return Color();
         return ray.color * getSkybox(ray);
     }
 
@@ -143,8 +144,8 @@ Ray3 Render3::createRay(int x, int y, ProjectionType projection)
     Vector3 RayOrigin;
 
     Vector3 forward = normalize(camera.direction);
-        Vector3 right = normalize(cross(forward, camera.up));
-        Vector3 up = normalize(camera.up);
+    Vector3 right = normalize(cross(forward, camera.up));
+    Vector3 up = normalize(camera.up);
 
     float ndcX = (x + 0.5f) / resX;
     float ndcY = (y + 0.5f) / resY;

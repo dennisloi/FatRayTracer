@@ -49,4 +49,14 @@ class Mesh3: public SceneObject
     
 };
 
+std::vector<Mesh3> loadOBJ(
+    const std::filesystem::path &fileName,
+    Vector3 origin,
+    Vector3 direction,
+    Vector3 scale,
+    float roughness = 0.0f,
+    float emissivity = 0.0f,
+    float transparency = 0.0f,
+    Color color = Color());
+
 #endif // MESH_H
