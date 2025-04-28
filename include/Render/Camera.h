@@ -16,7 +16,7 @@ class Camera3
 {
 public:
     // Origin and direction
-    Vector3 origin, direction;
+    Vector3 origin, direction, up;
 
     // Focal length
     float focalLength;
@@ -28,7 +28,7 @@ public:
     ProjectionType projection = ProjectionType::Prospective;
 
     // Constructor
-    Camera3(Vector3 origin_, Vector3 direction_, float focalLength_, float width_, float height_);
+    Camera3(Vector3 origin_, Vector3 direction_, Vector3 up_, float focalLength_, float width_, float height_);
 
     void render(PixelBuffer &pixelBuffer,
     std::vector<std::shared_ptr<SceneObject>> &objects,

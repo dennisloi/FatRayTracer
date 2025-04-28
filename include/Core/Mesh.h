@@ -9,19 +9,19 @@
 
 #include <filesystem>
 
-class Mesh3
+class Mesh3: public SceneObject 
 {
     public:
 
     std::vector<std::shared_ptr<Triangle3>> triangles;
-    sf::Image texture;
-    Color colorMesh;
-    // Sphere boundingSphere;
 
-    bool hasTexture;
+    // Sphere boundingSphere;
 
     // Default constructor
     Mesh3();
+
+    bool Intersect(const Ray3& ray, hitInfo& hitInfo) override;
+    void Shading(const Ray3& ray, const hitInfo& hitInfo, Ray3& reflection) override;
 
     bool loadSTL(
     const std::filesystem::path &fileName,
@@ -46,11 +46,7 @@ class Mesh3
     bool loadTexture(
         const std::filesystem::path &fileName
     );
-
-    Color getTexture(
-        int x,
-        int y
-    );
+    
 };
 
 #endif // MESH_H

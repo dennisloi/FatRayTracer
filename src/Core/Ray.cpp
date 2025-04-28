@@ -26,9 +26,9 @@ Color getSkybox(const Ray3& ray){
     Color c1 = Color(0.12f, 0.06f, 0.06f); // "Bottom" color
     Color c0 = Color(0.0f, 0.2f, 1.0f); // "Top" color
     
-    float r = ((c1.r - c0.r)/2) * ray.direction.y + ((c1.r + c0.r)/2);
-    float g = ((c1.g - c0.g)/2) * ray.direction.y + ((c1.g + c0.g)/2);
-    float b = ((c1.b - c0.b)/2) * ray.direction.y + ((c1.b + c0.b)/2);
+    float r = ((c1.r - c0.r)/2) * ray.direction.z + ((c1.r + c0.r)/2);
+    float g = ((c1.g - c0.g)/2) * ray.direction.z + ((c1.g + c0.g)/2);
+    float b = ((c1.b - c0.b)/2) * ray.direction.z + ((c1.b + c0.b)/2);
     
     return Color(r, g, b);
 }

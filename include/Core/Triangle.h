@@ -4,8 +4,9 @@
 #include "Core/SceneObject.h"
 #include "Core/Vector.h"
 #include "Core/Ray.h"
+#include "Core/HitInfo.h"
 
-class Triangle3 : public SceneObject
+class Triangle3
 {
 
 public:
@@ -22,7 +23,7 @@ public:
     // Declaration of the constructor
     Triangle3(Vector3 v0_, Vector3 v1_, Vector3 v2_);
 
-    bool Intersect(const Ray3& ray, Ray3& reflection) const override;
+    bool Intersect(const Ray3& ray, hitInfo& hitInfo);
 
 
 };

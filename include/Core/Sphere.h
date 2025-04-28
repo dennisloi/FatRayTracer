@@ -5,20 +5,20 @@
 #include "Core/Vector.h"
 #include "Core/Ray.h"
 
-class Sphere : public SceneObject
-{
+// class Sphere : public SceneObject
+// {
 
-public:
+// public:
 
-    Vector3 Origin;
+//     Vector3 Origin;
 
-    float radius;
+//     float radius;
 
-    // Declaration of the constructor
-    Sphere(Vector3 Origin_, float radius_);
+//     // Declaration of the constructor
+//     Sphere(Vector3 Origin_, float radius_);
 
-    bool Intersect(const Ray3& ray, Ray3& reflection) const override;
+//     // bool Intersect(const Ray3& ray, Ray3& reflection) const override;
 
-};
+// };
 
 #endif // SPHERE_H

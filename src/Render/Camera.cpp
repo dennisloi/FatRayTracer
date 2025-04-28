@@ -5,9 +5,10 @@
 #include <thread>
 
 // Constructor
-Camera3::Camera3(Vector3 origin_, Vector3 direction_, float focalLength_, float width_, float height_)
+Camera3::Camera3(Vector3 origin_, Vector3 direction_, Vector3 up_, float focalLength_, float width_, float height_)
     : origin(origin_),
       direction(direction_),
+      up(up_),
       focalLength(focalLength_),
       width(width_),
       height(height_) {}

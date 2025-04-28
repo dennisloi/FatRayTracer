@@ -4,22 +4,19 @@
 #include "Core/Vector.h"
 #include "Core/Ray.h"
 #include "Utils/Color.h"
+#include "Core/Material.h"
+#include "Core/HitInfo.h"
 #include <random>
 
 class SceneObject {
 
     public:
 
-        Color color = Color();
-
-        float emissivity = 0.0f;
-
-        float roughness = 0.0f;
-
-        float transparency = 0.0f;
+        Material* material;
         
         // Checks if a ray intersects with the triangle (Abstract method)
-        virtual bool Intersect(const Ray3& ray, Ray3& reflection) const = 0;
+        virtual bool Intersect(const Ray3& ray, hitInfo& hitInfo) = 0;
+        virtual void Shading(const Ray3& ray, const hitInfo& hitInfo, Ray3& reflection)  = 0;
 
         // Destructor
         //virtual ~SceneObject(); //TODO

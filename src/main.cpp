@@ -93,211 +93,48 @@ int main()
     pixels.resize(width * height);
 
     // Create a vector to store pointers to SceneObject (this will become a class)
-    std::vector<std::shared_ptr<Mesh3>> objects;
+    std::vector<std::shared_ptr<SceneObject>> objects;
 
-    // Create a scene (temp)
+    std::shared_ptr<Mesh3> Suzanne = std::make_shared<Mesh3>();
 
-    Sphere sphere0 = Sphere(Vector3(50.0f, 0.0f, 0.0f), 50.f);
-    // sphere0.transparency = 0.8;
-    sphere0.color = Color(0.6f, 0.6f, 0.6f);
-    sphere0.roughness = 1.0f;
-
-    Color lightColor = Color(1.f, 1.f, 1.f);
-
-    float lightSize = 90.0f;
-    float lightHeight = -80.f;
-
-    Vector3 lightV0 = Vector3(-lightSize, lightHeight, -lightSize);
-    Vector3 lightV1 = Vector3(-lightSize, lightHeight, lightSize);
-    Vector3 lightV2 = Vector3(lightSize, lightHeight, -lightSize);
-    Vector3 lightV3 = Vector3(lightSize, lightHeight, lightSize);
-
-    Triangle3 light0 = Triangle3(lightV1, lightV0, lightV2);
-    Triangle3 light1 = Triangle3(lightV2, lightV3, lightV1);
-
-    // Backside of the light, so no ray can pass through
-    Triangle3 light2 = Triangle3(lightV0, lightV1, lightV2);
-    Triangle3 light3 = Triangle3(lightV3, lightV2, lightV1);
-
-    light0.color = lightColor;
-    light1.color = lightColor;
-
-    // Completely black backside
-    light2.color = Color();
-    light3.color = Color();
-
-    light0.emissivity = 1.0f;
-    light1.emissivity = 1.0f;
-
-    Vector3 v1 = Vector3(-100.0f, -100.0f, -100.0f);
-    Vector3 v2 = Vector3(100.0f, -100.0f, -100.0f);
-    Vector3 v3 = Vector3(-100.0f, -100.0f, 100.0f);
-    Vector3 v4 = Vector3(100.0f, -100.0f, 100.0f);
-    Vector3 v5 = Vector3(-100.0f, 100.0f, 100.0f);
-    Vector3 v6 = Vector3(100.0f, 100.0f, 100.0f);
-    Vector3 v7 = Vector3(-100.0f, 100.0f, -100.0f);
-    Vector3 v8 = Vector3(100.0f, 100.0f, -100.0f);
-
-    // Bottom
-    Triangle3 triangle0 = Triangle3(v6, v8, v7);
-    Triangle3 triangle1 = Triangle3(v6, v7, v5);
-
-    // Left
-    Triangle3 triangle2 = Triangle3(v5, v7, v3);
-    Triangle3 triangle3 = Triangle3(v3, v7, v1);
-
-    // Top
-    Triangle3 triangle4 = Triangle3(v3, v1, v2);
-    Triangle3 triangle5 = Triangle3(v3, v2, v4);
-
-    // Right
-    Triangle3 triangle6 = Triangle3(v4, v2, v8);
-    Triangle3 triangle7 = Triangle3(v6, v4, v8);
-
-    // Back
-    Triangle3 triangle8 = Triangle3(v6, v3, v4);
-    Triangle3 triangle9 = Triangle3(v6, v5, v3);
-
-    // Front
-    Triangle3 triangle10 = Triangle3(v1, v7, v8);
-    Triangle3 triangle11 = Triangle3(v1, v8, v2);
-
-    // triangle10.transparency = 1.0f;
-    // triangle11.transparency = 0.2f;
-    // triangle10.emissivity = 0.1f;
-    // triangle11.emissivity = 0.1f;
-
-    triangle0.color = Color(50.0f / 255.0f, 50.0f / 255.0f, 127.0f / 255.0f);
-    triangle1.color = Color(50.0f / 255.0f, 50.0f / 255.0f, 127.0f / 255.0f);
-    triangle2.color = Color(50.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f);
-    triangle3.color = Color(50.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f);
-    triangle4.color = Color(50.0f / 255.0f, 127.0f / 255.0f, 50.0f / 255.0f);
-    triangle5.color = Color(50.0f / 255.0f, 127.0f / 255.0f, 50.0f / 255.0f);
-    triangle6.color = Color(127.0f / 255.0f, 50.0f / 255.0f, 25.0f / 255.0f);
-    triangle7.color = Color(127.0f / 255.0f, 50.0f / 255.0f, 25.0f / 255.0f);
-    triangle8.color = Color(127.0f / 255.0f, 25.0f / 255.0f, 25.0f / 255.0f);
-    triangle9.color = Color(127.0f / 255.0f, 25.0f / 255.0f, 25.0f / 255.0f);
-    triangle10.color = Color(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f);
-    triangle11.color = Color(127.0f / 255.0f, 127.0f / 255.0f, 127.0f / 255.0f);
-
-    float wallRoughness = 0.9f; // 🤡
-
-    triangle0.roughness = wallRoughness;
-    triangle1.roughness = wallRoughness;
-    triangle2.roughness = wallRoughness;
-    triangle3.roughness = wallRoughness;
-    triangle4.roughness = wallRoughness;
-    triangle5.roughness = wallRoughness;
-    triangle6.roughness = wallRoughness;
-    triangle7.roughness = wallRoughness;
-    triangle8.roughness = wallRoughness;
-    triangle9.roughness = wallRoughness;
-    triangle10.roughness = wallRoughness;
-    triangle11.roughness = wallRoughness;
-
-    float wallEmissivity = 0.0f; // 🤡
-
-    triangle0.emissivity = wallEmissivity;
-    triangle1.emissivity = wallEmissivity;
-    triangle2.emissivity = wallEmissivity;
-    triangle3.emissivity = wallEmissivity;
-    triangle4.emissivity = wallEmissivity;
-    triangle5.emissivity = wallEmissivity;
-    triangle6.emissivity = wallEmissivity;
-    triangle7.emissivity = wallEmissivity;
-    triangle8.emissivity = wallEmissivity;
-    triangle9.emissivity = wallEmissivity;
-    triangle10.emissivity = wallEmissivity;
-    triangle11.emissivity = wallEmissivity;
-
-    Sphere eye_sx = Sphere(Vector3(-25.0f, 20.0f, 00.0f), 15.f);
-    eye_sx.emissivity = 1.0f;
-    eye_sx.color = Color(1.f, 0.f, 0.f);
-    Sphere eye_dx = Sphere(Vector3(25.0f, 20.0f, 00.0f), 15.f);
-    eye_dx.emissivity = 1.0f;
-    eye_dx.color = Color(0.f, 0.f, 1.f);
-
-    // objects.push_back(std::make_shared<Sphere>(eye_sx));
-    // objects.push_back(std::make_shared<Sphere>(eye_dx));
-
-    // objects.push_back(std::make_shared<Sphere>(sphere0));
-    // objects.push_back(std::make_shared<Triangle3>(light0));
-    // objects.push_back(std::make_shared<Triangle3>(light1));
-    // objects.push_back(std::make_shared<Triangle3>(light2));
-    // objects.push_back(std::make_shared<Triangle3>(light3));
-    // objects.push_back(std::make_shared<Triangle3>(triangle0));
-    // objects.push_back(std::make_shared<Triangle3>(triangle1));
-    // objects.push_back(std::make_shared<Triangle3>(triangle2));
-    // objects.push_back(std::make_shared<Triangle3>(triangle3));
-    // objects.push_back(std::make_shared<Triangle3>(triangle4));
-    // objects.push_back(std::make_shared<Triangle3>(triangle5));
-    // objects.push_back(std::make_shared<Triangle3>(triangle6));
-    // objects.push_back(std::make_shared<Triangle3>(triangle7));
-    // objects.push_back(std::make_shared<Triangle3>(triangle8));
-    // objects.push_back(std::make_shared<Triangle3>(triangle9));
-
-    // objects.push_back(std::make_shared<Triangle3>(triangle10));
-    // objects.push_back(std::make_shared<Triangle3>(triangle11));
-
-    // Load from STL
-    // std::vector<std::shared_ptr<SceneObject>> stlObject;
-    // stlObject = loadSTL(
-    //     getExecutableDir() / "assets" / "meshes" / "Suzanne.stl",
-    //     Vector3(.0f,.0f,.0f), //origin
-    //     Vector3(.0f,.0f,.0f), //direction
-    //     Vector3(70.f,70.f,70.f), //scale
-    //     1.f, // Roughness
-    //     0.f, // Emissivity
-    //     0.f, // Transparency
-    //     Color(0.5f, 0.5f, 0.5f));
-
-    // // Add the STL object to the objects vector
-    // for (size_t i = 0; i < stlObject.size(); i++)
-    // {
-    //     objects.push_back(stlObject[i]);
-    // }
-
-    Mesh3 Suzanne;
-
-    // Suzanne.loadSTL(
-    //     getExecutableDir() / "assets" / "meshes" / "Suzanne.stl",
-    //     Vector3(.0f, .0f, .0f), // origin
-    //     Vector3(.0f, .0f, .0f), // direction
-    //     Vector3(70.f, 70.f, 70.f), // scale
-    //     0.6f, // Roughness
-    //     0.f, // Emissivity
-    //     0.f, // Transparency
-    //     Color(0.5f, 0.5f, 0.5f));
-
-    Suzanne.loadOBJ(
-        getExecutableDir() / "assets" / "meshes" / "cube2.obj",
+    Suzanne->loadOBJ(
+        getExecutableDir() / "assets" / "meshes" / "cube.obj",
         Vector3(.0f, .0f, .0f), // origin
         Vector3(.0f, .0f, .0f), // direction
         Vector3(50.f, 50.f, 50.f), // scale
         1.f, // Roughness
+        0.f, // Emissivity
+        0.f, // Transparency
+        Color(1.f, 0.5f, 0.5f));
+    Suzanne->loadTexture(
+        getExecutableDir() / "assets" / "meshes" / "cube2.png");
+    objects.push_back(Suzanne);
+
+    std::shared_ptr<Mesh3> Light = std::make_shared<Mesh3>();
+    Light->loadOBJ(
+        getExecutableDir() / "assets" / "meshes" / "face.obj",
+        Vector3(-80.0f, 100.0f, 0.0f), // origin
+        Vector3(.0f, .0f, .0f), // direction
+        Vector3(100.f, 100.f, 100.f), // scale
+        1.f, // Roughness
         1.f, // Emissivity
         0.f, // Transparency
         Color(1.f, 0.5f, 0.5f));
-    Suzanne.loadTexture(
-        getExecutableDir() / "assets" / "meshes" / "cube2.png");
-    // Suzanne.hasTexture = false;
-
-    // for (size_t i = 0; i < Suzanne.triangles.size(); i++)
-    // {
-        objects.push_back(std::make_shared<Mesh3>(Suzanne));
-    // }
+    
+    objects.push_back(Light);
 
     // Create a camera
-    Vector3 cameraOrigin = Vector3(0.0f, 0.0f, -400.0f);
-    Vector3 cameraDirection = normalize(Vector3(0.2f, .0f, 1.0f));
+    Vector3 cameraOrigin = Vector3(-200.f, -400.0f, 200.0f);
+    Vector3 cameraDirection = normalize(Vector3(.5f, 1.0f, -.5f));
+    Vector3 cameraUp = Vector3(.0f, 0.f, 1.f);
     float aspectRatio = static_cast<float>(width) / height;
 
     // Prospective
-    Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 10.f * aspectRatio, 10.f);
+    Camera3 camera(cameraOrigin, cameraDirection, cameraUp, 15.0f, 10.f * aspectRatio, 10.f);
     camera.projection = ProjectionType::Prospective;
 
     // Orthographic
-    // Camera3 camera(cameraOrigin, cameraDirection, 15.0f, 300.f * aspectRatio, 300.f);
+    // Camera3 camera(cameraOrigin, cameraDirection, cameraUp, 15.0f, 300.f * aspectRatio, 300.f);
     // camera.projection = ProjectionType::Orthographic;
 
     // Camera settings
@@ -319,13 +156,13 @@ int main()
     sf::Sprite sprite(texture);
 
     // Rendering settings
-    int averages = 10;
-    int maxReflections = 5;
+    int averages = 20;
+    int maxReflections = 10;
     float antialiasing = 0.0001f;
     float gain = 1.f;
 
     // Create render object
-    Render3 renderer(camera, objects, averages, maxReflections, width, height, antialiasing, gain);
+    Render3 renderer= Render3(camera, objects, averages, maxReflections, width, height, antialiasing, gain);
 
     // Create render queue
     int divs = 20;
@@ -380,7 +217,8 @@ int main()
         if (rendering)
         {
             // Update the rendering threads
-            rendering = renderer.renderLoop(pixelBuffer, numThreads * 2);
+            rendering = renderer.renderLoop(pixelBuffer, 1);
+            // rendering = renderer.renderLoop(pixelBuffer, numThreads * 2);
             if (!rendering)
             {
                 renderFinished = true;

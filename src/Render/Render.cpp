@@ -8,19 +8,19 @@
 #include <iostream>
 #include <algorithm>
 
+
+
 // Default constructor
 Render3::Render3(
     Camera3 camera_,
-    const std::vector<std::shared_ptr<Mesh3>> &objects_,
+    std::vector<std::shared_ptr<SceneObject>> &objects_,
     int averages_,
     int maxReflections_,
     int resX_,
     int resY_,
     float antialiasing_,
     float gain_)
-    : camera(camera_), objects(objects_), averages(averages_), maxReflections(maxReflections_), resX(resX_), resY(resY_), antialiasing(antialiasing_), gain(gain_)
-{
-}
+    : camera(camera_), objects(objects_), averages(averages_), maxReflections(maxReflections_), resX(resX_), resY(resY_), antialiasing(antialiasing_), gain(gain_) {}
 
 // TODO manage not integer divisions
 void Render3::createRenderQueue(int divs, RenderQueueType type)
@@ -86,128 +86,51 @@ Color Render3::renderRay(Ray3 ray)
     Ray3 reflection;
 
     float minDistance;
-    Ray3 closestObjectReflection;
-    int closestObjectIndex;
+    // Ray3 closestObjectReflection;
+    std::shared_ptr<SceneObject> closestObject = nullptr;
     int closestTriangleIndex;
     bool hit = false;
+    hitInfo hitI;
+    
 
     for (int i = 0; i < maxReflections; i++)
     {
         hit = false;
         minDistance = std::numeric_limits<float>::max();
-        closestObjectIndex = -1;
 
-        for (int j = 0; j < objects.size(); j++)
-        {
-            // Dereference the shared_ptr to access the Mesh3 object
-            Mesh3& mesh = *objects[j];
-            for (int k = 0; k < mesh.triangles.size(); k++)
-            {
-                if (mesh.triangles[k]->Intersect(ray, reflection))
-                {
-                    float distance = (reflection.origin - ray.origin).getLength();
-                    if (distance < minDistance)
-                    {
-                        minDistance = distance;
-                        closestObjectReflection = reflection;
-                        closestObjectIndex = j;
-                        closestTriangleIndex = k;
-                    }
+        for (std::shared_ptr<SceneObject> obj : objects) {
+
+            hitInfo tempHitInfo;
+            if (obj->Intersect(ray, tempHitInfo)){
+                if (tempHitInfo.distance < minDistance){
+                    minDistance = tempHitInfo.distance;
+                    closestObject = obj;
+                    hitI = tempHitInfo;
                     hit = true;
                 }
             }
         }
 
-        if (hit)
-        {
-            ray = closestObjectReflection;
-            Mesh3& mesh = *objects[closestObjectIndex];
-            Triangle3& triangle = *mesh.triangles[closestTriangleIndex];
-
-            if(mesh.hasTexture){
-                // temp
-
-                Vector3 intersection = ray.origin;
-
-                // Vector3 reference = triangle.v0;
-                // // Determine the projection of the interseciton onto v0-v1
-                // // The vector "a" is projected to the vector "b"
-                // Vector3 a = intersection - reference;
-                // Vector3 b = triangle.v1 - triangle.v0;
-                // float p0 = dot(a, b) / b.getLength();
-                // p0 = p0 / b.getLength();
-
-                // // Determine the projection of the interseciton onto v0-v2
-                // a = intersection - reference;
-                // b = triangle.v2 - triangle.v0;
-                // float p1 = dot(a, b) / b.getLength();
-                // p1 = p1 / b.getLength();
-
-                // Vector2 ta = triangle.t0;
-                // Vector2 tc = (triangle.t1 - ta) * p0;
-                // Vector2 te = (triangle.t2 - ta) * p1;
-
-                // float a1 = tc.y - ta.y;
-                // float a2 = te.y - ta.y;
-                // float b1 = tc.x - ta.x;
-                // float b2 = te.x - ta.x;
-
-                // float D = a1*b2 - a2*b1;
-                // // TODO check if D = 0
-
-                // float t = (te.x-tc.x)*(-b2) - (te.y-tc.y)*(a2);
-                // t = t/D;
-
-                // float intX = tc.x - a1*t;
-                // float intY = tc.y + b1*t;
-
-                Vector3 v0 = triangle.v0;
-                Vector3 v1 = triangle.v1;
-                Vector3 v2 = triangle.v2;
-                Vector3 p = intersection; // intersection point
-
-                Vector3 v0v1 = v1 - v0;
-                Vector3 v0v2 = v2 - v0;
-                Vector3 v0p  = p - v0;
-
-                float d00 = dot(v0v1, v0v1);
-                float d01 = dot(v0v1, v0v2);
-                float d11 = dot(v0v2, v0v2);
-                float d20 = dot(v0p, v0v1);
-                float d21 = dot(v0p, v0v2);
-
-                float denom = d00 * d11 - d01 * d01;
-                float v = (d11 * d20 - d01 * d21) / denom;
-                float w = (d00 * d21 - d01 * d20) / denom;
-                float u = 1.0f - v - w;
-
-                Vector2 texCoord = triangle.t0 * u + triangle.t1 *v + triangle.t2 * w;
-
-                int coordX = texCoord.x * mesh.texture.getSize().x;
-                int coordY = texCoord.y * mesh.texture.getSize().y;
-
-
-                Color textureColor = mesh.getTexture(coordX, coordY);
-                ray.color = ray.color * textureColor;
-                // ray.color = Color(u, v, w);  // just for debug
-            }
-            else {
-                ray.color = ray.color * mesh.colorMesh;
-            }
-
-            if (triangle.emissivity > 0.0f)
+        if (hit){
+            
+            // Check if is a light
+            if (closestObject->material->emissivity > 0.0f)
             {
-                Color c = ray.color * (triangle.emissivity * gain);
+                Color c = ray.color * (closestObject->material->emissivity * gain);
                 return c;
             }
+
+            closestObject->Shading(ray, hitI, reflection);
+            ray = reflection;
+        }
+        else{
+            break;
         }
     }
 
     if (!hit)
     {
-        Color c = Color();
         return ray.color * getSkybox(ray);
-        return c;
     }
 
     // In case no return hit above (shouldn't happen? But I don't pay for characters)
@@ -216,19 +139,26 @@ Color Render3::renderRay(Ray3 ray)
 
 Ray3 Render3::createRay(int x, int y, ProjectionType projection)
 {
-    // Prospectic
-    float ndcX = (x + 0.5f) / resX; // normalized device coordinates [0,1]
-    float ndcY = (y + 0.5f) / resY;
-
-    float screenX = (ndcX - 0.5f) * camera.width;
-    float screenY = (ndcY - 0.5f) * camera.height; //(0.5f - ndcY) will flip Y
-
     Vector3 RayDirection;
     Vector3 RayOrigin;
 
+    Vector3 forward = normalize(camera.direction);
+        Vector3 right = normalize(cross(forward, camera.up));
+        Vector3 up = normalize(camera.up);
+
+    float ndcX = (x + 0.5f) / resX;
+    float ndcY = (y + 0.5f) / resY;
+
+    float screenX = (ndcX - 0.5f) * camera.width;
+    float screenY = (0.5f - ndcY) * camera.height; // Flip Y axis
+
     if (projection == ProjectionType::Prospective)
     {
-        RayDirection = normalize(Vector3(screenX, screenY, camera.focalLength));
+        Vector3 localDirection = forward * camera.focalLength
+                                + right * screenX
+                                + up * screenY;
+
+        RayDirection = normalize(localDirection);
 
         RayDirection = normalize(RayDirection + getRandomDirection() * antialiasing);
 
@@ -241,7 +171,12 @@ Ray3 Render3::createRay(int x, int y, ProjectionType projection)
 
         // Apply antialiasing jitter to origin, not direction
         Vector3 jitter = getRandomDirection() * antialiasing;
-        RayOrigin = camera.origin + Vector3(screenX, screenY, 0.0f) + jitter;
+        
+        Vector3 forward = normalize(camera.direction);
+        Vector3 right = normalize(cross(forward, camera.up));
+        Vector3 up = cross(right, forward);
+
+        RayOrigin = camera.origin + right * screenX + up * screenY + jitter;
     }
 
     // Orthographic projection

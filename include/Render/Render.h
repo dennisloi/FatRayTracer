@@ -5,6 +5,7 @@
 #include "Core/Ray.h"
 #include "Core/Mesh.h"
 #include "Render/Camera.h"
+#include "Core/HitInfo.h"
 
 #include <memory>
 #include <thread>
@@ -42,7 +43,7 @@ class Render3
 
         // Scene
         Camera3 camera;
-        const std::vector<std::shared_ptr<Mesh3>> &objects;
+        std::vector<std::shared_ptr<SceneObject>> &objects;
 
         // Render settings
         int averages;
@@ -52,7 +53,7 @@ class Render3
         // Constructor
         Render3(
             Camera3 camera_,
-            const std::vector<std::shared_ptr<Mesh3>> &objects_,
+            std::vector<std::shared_ptr<SceneObject>> &objects_,
             int averages_ = 5,
             int maxReflections_ = 3,
             int resX_ = 400,
