@@ -25,6 +25,7 @@ class Color {
 };
 
 Color averageColors(const Color& color0, const Color& color1);
+float colorDistance(const Color& color0, const Color& color1);
 
 // Color randomColor(); TODO
 

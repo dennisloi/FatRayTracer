@@ -78,6 +78,12 @@ int main()
     // Create a pixel buffer
     PixelBuffer pixelBuffer(width, height);
 
+    int samplesLimit = 10;
+    float varianceThreshold = 0.1f;
+
+    pixelBuffer.samplesLimit = samplesLimit;
+    pixelBuffer.varianceThreshold = varianceThreshold;
+
     // Create an SFML texture to display the pixel buffer
     sf::Texture texture;
     texture.create(width, height);
@@ -102,7 +108,7 @@ int main()
         Vector3(.0f, .0f, .0f), // origin
         Vector3(.0f, .0f, .0f), // direction
         Vector3(50.f, 50.f, 50.f), // scale
-        1.f, // Roughness
+        .8f, // Roughness
         0.f, // Emissivity
         0.f, // Transparency
         Color(1.f, 0.5f, 0.5f));
@@ -120,13 +126,14 @@ int main()
         1.f, // Roughness
         1.f, // Emissivity
         0.f, // Transparency
-        Color(1.f, 0.5f, 0.5f));
+        Color(1.f, 1.f, 1.f));
     // Lights->loadTexture(
     //     getExecutableDir() / "assets" / "meshes" / "texture.png");
     objects.push_back(Lights);
 
     // Create a camera
-    Vector3 cameraOrigin = Vector3(0.f, -200.0f, 0.0f);
+    // Vector3 cameraOrigin = Vector3(10.f, -50.0f, 15.0f);
+    Vector3 cameraOrigin = Vector3(0.f, -200.0f, .0f);
     Vector3 cameraDirection = normalize(Vector3(.0f, 1.0f, .0f));
     Vector3 cameraUp = Vector3(.0f, 0.f, 1.f);
     float aspectRatio = static_cast<float>(width) / height;
@@ -158,8 +165,8 @@ int main()
     sf::Sprite sprite(texture);
 
     // Rendering settings
-    int averages = 10;
-    int maxReflections = 10;
+    int averages = 1;
+    int maxReflections = 5;
     float antialiasing = 0.0001f;
     float gain = 1.f;
 
@@ -167,7 +174,7 @@ int main()
     Render3 renderer= Render3(camera, objects, averages, maxReflections, width, height, antialiasing, gain);
 
     // Create render queue
-    int divs = 20;
+    int divs = 10;
 
     bool rendering = false;
     bool renderFinished = false;
@@ -194,8 +201,10 @@ int main()
                         rendering = true;
                         CameraText.setString("Rendering...");
                         pixelBuffer.clearBuffer();
+                        pixelBuffer.fillQueue();
 
-                        renderer.createRenderQueue(divs, RenderQueueType::Spiral); //or RenderQueueType::Grid
+                        // renderer.createRenderQueue(divs, RenderQueueType::Spiral); //or RenderQueueType::Grid
+                        renderer.renderRandDispatcher(pixelBuffer, numThreads);
                         start = std::chrono::high_resolution_clock::now();
                     }
                 }
@@ -218,23 +227,36 @@ int main()
 
         if (rendering)
         {
-            // Update the rendering threads
-            // rendering = renderer.renderLoop(pixelBuffer, 1);
-            rendering = renderer.renderLoop(pixelBuffer, numThreads * 2);
-            if (!rendering)
+            int pixelsNum = pixelBuffer.width * pixelBuffer.height;
+            int queueSize = pixelBuffer.pixelsQueue.size();
+
+            float progress = 
+                static_cast<float>(pixelsNum - queueSize) / pixelsNum * 100.f;
+
+            CameraText.setString("Rendering... " +
+                                 std::to_string(progress) + "%");
+
+            // Check if the render has finished
+            bool done = pixelBuffer.checkDone();
+
+            if (done)
             {
+                rendering = false;
                 renderFinished = true;
                 stop = std::chrono::high_resolution_clock::now();
             }
         }
 
         // Convert the pixel buffer to SFML TODO move to a function/Class/method/somethingthatisnotfullyhere
-        pixels = pixelBuffer.getPixels(); // Get the colors
+        // pixels = pixelBuffer.getPixels(); // Get the colors
         for (unsigned int y = 0; y < height; y++)
         {
             for (unsigned int x = 0; x < width; x++)
             {
-                Color pixel = pixels[y * width + x];
+                int index = y * width + x;
+
+                // Get the pixel
+                Color pixel = pixelBuffer.pixels[index].getColor();
 
                 // Apply Gamma correction
                 float r = std::sqrt(pixel.r) * 255;

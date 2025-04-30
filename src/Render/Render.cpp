@@ -7,8 +7,7 @@
 #include <atomic>
 #include <iostream>
 #include <algorithm>
-
-
+#include <random> // Used to pick a random pixel for random rendering
 
 // Default constructor
 Render3::Render3(
@@ -261,3 +260,71 @@ bool Render3::renderLoop(PixelBuffer &pixelBuffer, int numThreads)
     else
         return true;
 }
+
+void Render3::renderRand(PixelBuffer &pixelBuffer, int seed){
+
+    std::mt19937 rng(seed);
+    
+
+    while(true){
+        // TODO, use tiles, even if small (8x8?)
+
+        // TODO, look into RAII-based scoped lock
+
+        // Lock the pixelQueue
+        pixelBuffer.pixelsQueueMutex.lock();
+
+        // Check if the render has finished
+        if (pixelBuffer.pixelsQueue.size() == 0) return;
+
+        // Select a random pixel
+        std::uniform_int_distribution<int> distI(0, pixelBuffer.pixelsQueue.size() - 1);
+        int index = distI(rng);
+
+        // Pop the pixel
+        Pixel *pixel = pixelBuffer.pixelsQueue[index];
+        pixelBuffer.pixelsQueue.erase(pixelBuffer.pixelsQueue.begin() + index);
+
+        // Release the lock
+        pixelBuffer.pixelsQueueMutex.unlock();
+
+        // Render the pixel
+        Ray3 ray = createRay(pixel->x, pixel->y, camera.projection);
+
+        pixel->addSample(renderRay(ray));
+
+        // Check if the samples limit has been reached
+        if(pixel->getSample() >= pixelBuffer.samplesLimit) continue;
+
+        // Check if the variance is below the threshold TODO!
+        // if(pixelBuffer.variance[index] <= pixelBuffer.varianceThreshold) continue;
+
+        // Lock the pixelQueue
+        pixelBuffer.pixelsQueueMutex.lock();
+
+        // Push the unfinished pixel back to the queue
+        pixelBuffer.pixelsQueue.push_back(pixel);
+
+        // Release the lock
+        pixelBuffer.pixelsQueueMutex.unlock();
+
+    }
+}
+
+void Render3::renderRandDispatcher(PixelBuffer &pixelBuffer, int numThreads)
+{
+    for(int i=0; i<numThreads; i++){
+
+        // Generate a random seed
+        std::random_device rd;
+        int seed = rd();
+
+        // Start the thread
+        std::thread t(&Render3::renderRand, this, std::ref(pixelBuffer), seed);
+
+        // Detach the thread
+        t.detach();
+    }
+}
+
+

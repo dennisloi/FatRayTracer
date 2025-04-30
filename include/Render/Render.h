@@ -84,6 +84,16 @@ class Render3
             int numThreads
         );
 
+        void renderRand(
+            PixelBuffer &pixelBuffer,
+            int seed
+        );
+
+        void renderRandDispatcher(
+            PixelBuffer &pixelBuffer,
+            int numThreads
+        );
+
 };
 
 #endif // RENDER_H

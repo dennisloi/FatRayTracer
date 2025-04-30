@@ -1,5 +1,6 @@
 
 #include "Utils/Color.h"
+#include <cmath>
 
 // Default constructor initialize a black color
 Color::Color()
@@ -57,3 +58,10 @@ Color averageColors(const Color& color0, const Color& color1){
     );
 }
 
+float colorDistance(const Color& color0, const Color& color1){
+    float red   = color0.r - color1.r;
+    float green = color0.g - color1.g;
+    float blue  = color0.b - color1.b;
+
+    return std::sqrt(red*red + green*green + blue*blue);
+}
