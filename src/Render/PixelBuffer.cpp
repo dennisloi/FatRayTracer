@@ -1,5 +1,8 @@
 #include "Render/PixelBuffer.h"
 
+#include <random>
+#include <algorithm>
+
 void Pixel::setColor(Color color){
     colorAcc = color;
 }
@@ -62,6 +65,10 @@ bool PixelBuffer::checkDone()
 }
 
 void PixelBuffer::fillQueue(){
+
+    // Clean up the buffer
+    pixelsQueue.clear();
+
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             Pixel *p = &pixels[x + y*width];
@@ -70,4 +77,10 @@ void PixelBuffer::fillQueue(){
             pixelsQueue.push_back(p);
         }
     }
+
+    // Shuffle the queue to randomize the order
+    std::random_device rd;
+    std::mt19937 rng(rd()); // or use std::random_device for nondeterministic seed
+    std::shuffle(pixelsQueue.begin(), pixelsQueue.end(), rng);
+
 }

@@ -261,55 +261,68 @@ bool Render3::renderLoop(PixelBuffer &pixelBuffer, int numThreads)
         return true;
 }
 
-void Render3::renderRand(PixelBuffer &pixelBuffer, int seed){
-
-    std::mt19937 rng(seed);
+// void Render3::renderRand(PixelBuffer &pixelBuffer, int seed) {
     
+//     Pixel* pixel = nullptr;
+//     std::atomic<unsigned int> nextIndex{0};
+//     int i;
 
-    while(true){
-        // TODO, use tiles, even if small (8x8?)
+//     while (true) {
 
-        // TODO, look into RAII-based scoped lock
+//         // Get the next index
+//         i = nextIndex.fetch_add(1, std::memory_order_relaxed);
 
-        // Lock the pixelQueue
-        pixelBuffer.pixelsQueueMutex.lock();
+//         // Check if there are still pixels to render
+//         if (i >= pixelBuffer.pixelsQueue.size())
+//             break;
 
-        // Check if the render has finished
-        if (pixelBuffer.pixelsQueue.size() == 0) return;
+//         // Retrieve the pixel
+//         pixel = pixelBuffer.pixelsQueue[i];
 
-        // Select a random pixel
-        std::uniform_int_distribution<int> distI(0, pixelBuffer.pixelsQueue.size() - 1);
-        int index = distI(rng);
+//         // Do rendering work outside the lock
+//         Ray3 ray = createRay(pixel->x, pixel->y, camera.projection);
+//         // for (int j = 0; j < 10; j++){ // TODO parametric + check for max samples or delta
+//             pixel->addSample(renderRay(ray));
+//         // }
 
-        // Pop the pixel
-        Pixel *pixel = pixelBuffer.pixelsQueue[index];
-        pixelBuffer.pixelsQueue.erase(pixelBuffer.pixelsQueue.begin() + index);
+//     }
+// }
 
-        // Release the lock
-        pixelBuffer.pixelsQueueMutex.unlock();
+void Render3::renderRand(PixelBuffer &pixelBuffer, int seed) {
 
-        // Render the pixel
-        Ray3 ray = createRay(pixel->x, pixel->y, camera.projection);
+    int pixelsN = 8;
+    
+    Pixel* batch[pixelsN];
+    std::atomic<unsigned int> nextIndex{0};
+    int i;
+    Ray3 ray;
 
-        pixel->addSample(renderRay(ray));
+    while (true) {
 
-        // Check if the samples limit has been reached
-        if(pixel->getSample() >= pixelBuffer.samplesLimit) continue;
+        // Get the next index
+        i = nextIndex.fetch_add(pixelsN, std::memory_order_relaxed);
 
-        // Check if the variance is below the threshold TODO!
-        // if(pixelBuffer.variance[index] <= pixelBuffer.varianceThreshold) continue;
+        // Check if there are still pixels to render
+        if (i + pixelsN >= pixelBuffer.pixelsQueue.size()) // TODO may drop pixels!
+            break;
 
-        // Lock the pixelQueue
-        pixelBuffer.pixelsQueueMutex.lock();
+        // Retrieve the pixel
+        for(int j = 0; j < pixelsN; j++){
+            batch[j] = pixelBuffer.pixelsQueue[i + j];
+        }
+        // pixel = pixelBuffer.pixelsQueue[i];
 
-        // Push the unfinished pixel back to the queue
-        pixelBuffer.pixelsQueue.push_back(pixel);
+        // Render the pixels
+        for(Pixel* p : batch){
+            ray = createRay(p->x, p->y, camera.projection);
 
-        // Release the lock
-        pixelBuffer.pixelsQueueMutex.unlock();
-
+            // for (int j = 0; j < 10; j++){ // TODO parametric + check for max samples or delta
+            p->addSample(renderRay(ray));
+            // }
+        }
     }
 }
+
 
 void Render3::renderRandDispatcher(PixelBuffer &pixelBuffer, int numThreads)
 {

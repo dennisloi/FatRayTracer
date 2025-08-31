@@ -4,6 +4,7 @@
 #include <vector>
 #include "Utils/Color.h"
 #include <mutex>
+#include <atomic>
 
 class Pixel
 {
@@ -34,9 +35,10 @@ public:
 
     // Filled used fillQueue, and emptied during the rendering
     std::vector<Pixel*> pixelsQueue;
+    std::atomic<unsigned int> index{0};
     std::mutex pixelsQueueMutex;
 
-    bool done;
+    bool done;  
 
     // Rendering options
     int samplesLimit;
